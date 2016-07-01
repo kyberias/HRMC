@@ -382,12 +382,29 @@ namespace HRMC
 
         public void VisitLogicalExpression(LogicalExpression expr)
         {
+            var exit = GetNewLabel();
             for (int i = 0; i < expr.Expressions.Count; i++)
             {
                 var e = expr.Expressions[i];
                 e.Visit(this);
+
+                if (i < expr.Expressions.Count - 1)
+                {
+                    if (e.TrueIsZero)
+                    {
+                        var lb = GetNewLabel();
+                        EmitInstruction(Opcode.JumpZ, lb);
+                        EmitInstruction(Opcode.Jump, exit);
+                        EmitInstruction(Opcode.Label, lb);
+                    }
+                    else
+                    {
+                        EmitInstruction(Opcode.JumpZ, exit);
+                    }
+                }
             }
-        }
+            EmitInstruction(Opcode.Label, exit);
+            }
 
         public void VisitEqualityExpression(EqualityExpression expr)
         {

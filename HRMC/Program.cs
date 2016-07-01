@@ -26,6 +26,8 @@ namespace HRMC
         public List<Token> LogicalOperators { get; set; } = new List<Token>();
         public override bool IsBooleanType => LogicalOperators.Any() || Expressions.Any(e => e.IsBooleanType);
 
+        public override bool TrueIsZero => Expressions.TrueForAll(e => e.TrueIsZero);
+
         public override void Visit(IVisitor visitor)
         {
             visitor.VisitLogicalExpression(this);

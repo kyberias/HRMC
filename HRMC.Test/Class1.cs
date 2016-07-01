@@ -107,6 +107,24 @@ namespace HRMC.Test
             return Evaluate("int a=input(); ++a; ++a; ++a; --a; output(a); ", input);
         }
 
+        [TestCase(new[] { 1, 1, 1 }, ExpectedResult = new int[] { 1 })]
+        [TestCase(new[] { 2, 1, 1 }, ExpectedResult = new int[] {  })]
+        [TestCase(new[] { 1, 2, 1 }, ExpectedResult = new int[] { })]
+        [TestCase(new[] { 1, 1, 2 }, ExpectedResult = new int[] { })]
+        public int[] AndExpressionWithEquality(int[] input)
+        {
+            return Evaluate("int a=input(); int b=input(); int c=input(); if(a==b && b==c && c==a) { output(a); } ", input);
+        }
+
+        [TestCase(new[] { 1, 1, 1 }, ExpectedResult = new int[] {  })]
+        [TestCase(new[] { 2, 1, 3 }, ExpectedResult = new int[] { 2 })]
+        [TestCase(new[] { 1, 2, 3 }, ExpectedResult = new int[] { 1 })]
+        [TestCase(new[] { 3, 1, 2 }, ExpectedResult = new int[] { 3 })]
+        public int[] AndExpression(int[] input)
+        {
+            return Evaluate("int a=input(); int b=input(); int c=input(); if(a!=b && b!=c && c!=a) { output(a); } ", input);
+        }
+
         int[] Evaluate(string program, int[] input, int[] memory = null)
         {
             var lexer = new Tokenizer();
