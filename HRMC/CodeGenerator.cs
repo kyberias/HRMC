@@ -18,7 +18,11 @@ namespace HRMC
             Add,
             Sub,
             Outbox,
-            Inbox
+            Inbox,
+            BumpUp,
+            BumpDown,
+            BumpUpIndirect,
+            BumpDownIndirect,
         }
 
         public class Instruction
@@ -49,9 +53,13 @@ namespace HRMC
                     case Opcode.Sub:
                     case Opcode.CopyFrom:
                     case Opcode.CopyTo:
+                    case Opcode.BumpUp:
+                    case Opcode.BumpDown:
                         return Opcode.ToString().ToUpper() + " " + Operand;
                     case Opcode.CopyFromIndirect:
                     case Opcode.CopyToIndirect:
+                    case Opcode.BumpUpIndirect:
+                    case Opcode.BumpDownIndirect:
                         return Opcode.ToString().ToUpper() + " [" + Operand + "]";
                     case Opcode.Jump:
                     case Opcode.JumpZ:
@@ -179,13 +187,26 @@ namespace HRMC
             var variable = variables[expr.Name];
             if (expr.Indirect)
             {
+                if (expr.PreIncrement || expr.PreDecrement)
+                {
+                    EmitInstruction(expr.PreIncrement ? Opcode.BumpUpIndirect : Opcode.BumpDownIndirect, variable.address.Value);
+                }
+
                 if (variable.constantValue.HasValue)
                 {
                     EmitInstruction(Opcode.CopyFrom, variable.constantValue.Value);
                 }
-                else
+                else if(!expr.PreIncrement && !expr.PreDecrement)
                 {
                     EmitInstruction(Opcode.CopyFromIndirect, variable.address.Value);
+                }
+                if (expr.PostIncrement || expr.PostDecrement)
+                {
+                    var v = AllocVariable();
+                    EmitInstruction(Opcode.CopyTo, v);
+                    EmitInstruction(expr.PostIncrement ? Opcode.BumpUp : Opcode.BumpDown, variable.address.Value);
+                    EmitInstruction(Opcode.CopyFrom, v);
+                    FreeVariable();
                 }
             }
             else
@@ -196,7 +217,22 @@ namespace HRMC
                 }
                 else
                 {
-                    EmitInstruction(Opcode.CopyFrom, variables[expr.Name].address.Value);
+                    if (expr.PreIncrement || expr.PreDecrement)
+                    {
+                        EmitInstruction(expr.PreIncrement ? Opcode.BumpUp : Opcode.BumpDown, variable.address.Value);
+                    }
+                    else
+                    {
+                        EmitInstruction(Opcode.CopyFrom, variable.address.Value);
+                    }
+                }
+                if (expr.PostIncrement || expr.PostDecrement)
+                {
+                    var v = AllocVariable();
+                    EmitInstruction(Opcode.CopyTo, v);
+                    EmitInstruction(expr.PostIncrement ? Opcode.BumpUp : Opcode.BumpDown, variable.address.Value);
+                    EmitInstruction(Opcode.CopyFrom, v);
+                    FreeVariable();
                 }
             }
         }
@@ -356,30 +392,26 @@ namespace HRMC
         public void VisitEqualityExpression(EqualityExpression expr)
         {
             // If either expression is variable, calculate the other one first
+            var notVar = expr.Expression is VariableExpression ? expr.Expression2 : expr.Expression;
+            var varExpr = notVar == expr.Expression
+                ? expr.Expression2 as VariableExpression
+                : expr.Expression as VariableExpression;
 
-            //if (expr.LogicalOperator.Value == Token.Equal)
+            if (varExpr != null)
             {
-                var notVar = expr.Expression is VariableExpression ? expr.Expression2 : expr.Expression;
-                var varExpr = notVar == expr.Expression
-                    ? expr.Expression2 as VariableExpression
-                    : expr.Expression as VariableExpression;
-
-                if (varExpr != null)
-                {
-                    notVar.Visit(this);
-                    EmitInstruction(Opcode.Sub, variables[varExpr.Name].address.Value);
-                    // Accumulator is zero when left == right
-                }
-                else
-                {
-                    // Both are non var, we need a temp register
-                    expr.Expression.Visit(this);
-                    var temp = AllocVariable();
-                    EmitInstruction(Opcode.CopyTo, temp);
-                    expr.Expression2.Visit(this);
-                    EmitInstruction(Opcode.Sub, temp);
-                    FreeVariable();
-                }
+                notVar.Visit(this);
+                EmitInstruction(Opcode.Sub, variables[varExpr.Name].address.Value);
+                // Accumulator is zero when left == right
+            }
+            else
+            {
+                // Both are non var, we need a temp register
+                expr.Expression.Visit(this);
+                var temp = AllocVariable();
+                EmitInstruction(Opcode.CopyTo, temp);
+                expr.Expression2.Visit(this);
+                EmitInstruction(Opcode.Sub, temp);
+                FreeVariable();
             }
         }
 

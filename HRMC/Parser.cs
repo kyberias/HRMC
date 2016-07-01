@@ -137,22 +137,53 @@ namespace HRMC
                 AcceptElement(Token.Asterisk);
             }
 
-            var symbol = AcceptElement(Token.Symbol);
+            bool preInc = false;
+            bool preDec = false;
+
             var el = PeekElement();
-            if (el.Type == Token.ParenOpen)
+            if (el.Type == Token.Decrement)
+            {
+                AcceptElement(el.Type);
+                preDec = true;
+            }
+            else if (el.Type == Token.Increment)
+            {
+                AcceptElement(el.Type);
+                preInc = true;
+            }
+
+            var symbol = AcceptElement(Token.Symbol);
+            el = PeekElement();
+            if (el.Type == Token.ParenOpen && !preInc && !preDec)
             {
                 return ParseFunction(symbol.Data);
             }
-            if (el.Type == Token.Is)
+
+            if (el.Type == Token.Is && !preInc && !preDec)
             {
                 return ParseAssignment(symbol.Data, indirect);
             }
 
-            return new VariableExpression
+            var expr = new VariableExpression
             {
                 Name = symbol.Data,
-                Indirect = indirect
+                Indirect = indirect,
+                PreIncrement = preInc,
+                PreDecrement = preDec
             };
+
+            if (el.Type == Token.Increment)
+            {
+                AcceptElement(el.Type);
+                expr.PostIncrement = true;
+            }
+            if (el.Type == Token.Decrement)
+            {
+                AcceptElement(el.Type);
+                expr.PostDecrement = true;
+            }
+
+            return expr;
         }
 
         ExpressionBase ParseExpression()
@@ -329,6 +360,8 @@ namespace HRMC
                     return ParseBlockStatement();
                 case Token.Symbol:
                 case Token.Asterisk:
+                case Token.Increment:
+                case Token.Decrement:
                     {
                         var ex = new ExpressionStatement {Condition = ParseExpression()};
                         AcceptElement(Token.Semicolon);

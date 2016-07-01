@@ -34,11 +34,11 @@ while(*a == *b && *a != 0 && *b != 0)
 	b++;
 }
 
-if(*a == 0)
+if(*a == Zero)
 {
 	return One;
 }
-else if(*b == 0)
+else if(*b == Zero)
 {
 	return Zero;
 }

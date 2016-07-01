@@ -95,6 +95,18 @@ namespace HRMC.Test
             return Evaluate("int a=input(); int b = input(); if(a != b) { output(a+b); }", input);
         }
 
+        [TestCase(new[] { 10 }, ExpectedResult = new int[] { 12 })]
+        public int[] PostfixIncrementDecrement(int[] input)
+        {
+            return Evaluate("int a=input(); a++; a++; a++; a--; output(a); ", input);
+        }
+
+        [TestCase(new[] { 10 }, ExpectedResult = new int[] { 12 })]
+        public int[] PrefixIncrementDecrement(int[] input)
+        {
+            return Evaluate("int a=input(); ++a; ++a; ++a; --a; output(a); ", input);
+        }
+
         int[] Evaluate(string program, int[] input, int[] memory = null)
         {
             var lexer = new Tokenizer();

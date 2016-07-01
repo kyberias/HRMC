@@ -75,12 +75,26 @@ namespace HRMC
                 bool andSeen = false;
                 bool orSeen = false;
                 bool notSeen = false;
+                bool plusSeen = false;
+                bool minusSeen = false;
 
                 StringBuilder name = new StringBuilder();
                 StringBuilder number = new StringBuilder();
 
                 foreach (var c in GetChars(reader))
                 {
+                    if (plusSeen && c != '+')
+                    {
+                        plusSeen = false;
+                        yield return new TokenElement(Token.Plus);
+                    }
+
+                    if (minusSeen && c != '-')
+                    {
+                        minusSeen = false;
+                        yield return new TokenElement(Token.Minus);
+                    }
+
                     if (equalSeen && c != '=')
                     {
                         equalSeen = false;
@@ -147,10 +161,26 @@ namespace HRMC
                     switch (c)
                     {
                         case '+':
-                            yield return new TokenElement(Token.Plus);
+                            if (plusSeen)
+                            {
+                                yield return new TokenElement(Token.Increment);
+                            }
+                            else
+                            {
+                                plusSeen = true;
+                                continue;
+                            }
                             break;
                         case '-':
-                            yield return new TokenElement(Token.Minus);
+                            if (minusSeen)
+                            {
+                                yield return new TokenElement(Token.Decrement);
+                            }
+                            else
+                            {
+                                minusSeen = true;
+                                continue;
+                            }
                             break;
                         case '*':
                             yield return new TokenElement(Token.Asterisk);
@@ -222,7 +252,6 @@ namespace HRMC
                             {
                                 equalSeen = true;
                                 continue;
-                                //yield return new TokenElement(HrmLexType.Is);
                             }
                             break;
                         default:
@@ -233,7 +262,9 @@ namespace HRMC
                         equalSeen = 
                         andSeen = 
                         orSeen =
-                        notSeen = false;
+                        notSeen = 
+                        plusSeen = 
+                        minusSeen = false;
                 }
             }
         }

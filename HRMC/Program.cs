@@ -67,6 +67,10 @@ namespace HRMC
     {
         public string Name { get; set; }
         public bool Indirect { get; set; }
+        public bool PostIncrement { get; set; }
+        public bool PreIncrement { get; set; }
+        public bool PostDecrement { get; set; }
+        public bool PreDecrement { get; set; }
 
         public override void Visit(IVisitor visitor)
         {
