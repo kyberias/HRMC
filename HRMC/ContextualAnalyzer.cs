@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace HRMC
@@ -190,6 +189,13 @@ namespace HRMC
             {
                 expr.Expression2.Visit(this);
             }
+            if (expr.Expression.EvaluatedValue.HasValue && expr.Expression2 != null && expr.Expression2.EvaluatedValue.HasValue)
+            {
+                if (expr.LogicalOperator == Token.Equals)
+                {
+                    expr.EvaluatedValue = expr.Expression.EvaluatedValue.Value == expr.Expression2.EvaluatedValue.Value;
+                }
+            }
         }
 
         public void VisitOperationExpression(OperationExpression expr)
@@ -198,6 +204,11 @@ namespace HRMC
             {
                 e.Visit(this);
             }
+        }
+
+        public void Visit(ConstantLiteralExpression expr)
+        {
+            expr.EvaluatedValue = expr.Value;
         }
     }
 }

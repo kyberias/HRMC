@@ -24,7 +24,6 @@ namespace HRMC
     // TODO: Support for OR (||)
     // TODO: Support for comparision operators (<=, <, >, >=, !=)
     // TODO: Support for variable incrementation (e.g. i++, ++i, i--, --i)
-    // TODO: Support for constant literals (e.g. while(true))
     // TODO: Support for table access (e.g. ptr[0], ptr[a]. ptr[42] is problematic since we don't support integer literals
     // TODO: Reading from uninitialized memory address should result in error
 
@@ -93,6 +92,16 @@ namespace HRMC
 
         ExpressionBase ParsePrimaryExpression()
         {
+            var peeked = PeekElement().Type;
+            if (peeked == Token.False || peeked == Token.True)
+            {
+                AcceptElement(peeked);
+                return new ConstantLiteralExpression
+                {
+                    Value = peeked == Token.True
+                };
+            }
+
             if (PeekElement().Type == Token.ParenOpen)
             {
                 AcceptElement(Token.ParenOpen);
@@ -210,7 +219,8 @@ namespace HRMC
 
             ifs.Statement = ParseStatement();
 
-            if (PeekElement().Type == Token.Else)
+            var peeked = PeekElement();
+            if (peeked != null && peeked.Type == Token.Else)
             {
                 AcceptElement(Token.Else);
                 ifs.ElseStatement = ParseStatement();

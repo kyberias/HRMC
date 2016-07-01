@@ -30,7 +30,9 @@ namespace HRMC
         Increment, //++
         Decrement, //--
         BracketOpen,
-        BracketClose
+        BracketClose,
+        True,
+        False
     }
 
     public class TokenElement
@@ -115,6 +117,12 @@ namespace HRMC
                                 break;
                             case "while":
                                 yield return new TokenElement(Token.While);
+                                break;
+                            case "true":
+                                yield return new TokenElement(Token.True);
+                                break;
+                            case "false":
+                                yield return new TokenElement(Token.False);
                                 break;
                             default:
                                 yield return new TokenElement(Token.Symbol, name.ToString());

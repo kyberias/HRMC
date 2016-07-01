@@ -14,6 +14,8 @@ namespace HRMC
     public abstract class ExpressionBase : AstBase
     {
         public abstract bool IsBooleanType { get; }
+
+        public bool? EvaluatedValue { get; set; }
     }
 
     public class LogicalExpression : ExpressionBase
@@ -66,6 +68,17 @@ namespace HRMC
         public override void Visit(IVisitor visitor)
         {
             visitor.VisitVariableExpression(this);
+        }
+    }
+
+    public class ConstantLiteralExpression : PrimaryExpression
+    {
+        public bool Value { get; set; }
+        public override bool IsBooleanType => true;
+
+        public override void Visit(IVisitor visitor)
+        {
+            visitor.Visit(this);
         }
     }
 

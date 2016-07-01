@@ -18,7 +18,7 @@ namespace HRMC.Test
 
         [TestCase("int a = input(); output(((a)+a)+a);", new[] { 1 }, ExpectedResult = new[] { 3 }, Description = "Parenthesis")]
 
-        [TestCase("int a[10]; int *b = a; while(true) { *a = input(); if(*a == 0) { break; } output(*a); a++; } output(a-b);", new[] { 1 }, ExpectedResult = new[] { 3 }, Description = "Arrays")]
+//        [TestCase("int a[10]; int *b = a; while(true) { *a = input(); if(*a == 0) { break; } output(*a); a++; } output(a-b);", new[] { 1 }, ExpectedResult = new[] { 3 }, Description = "Arrays")]
 
         public int[] CompiledProgramShouldGenerateCorrectOutput(string program, int[] input)
         {
@@ -32,6 +32,18 @@ namespace HRMC.Test
             return Evaluate(program, input);
         }
 
+        [TestCase("while(true) { output(input()); }", new[] { 1, 2, 3, 4, 5 }, ExpectedResult = new[] { 1, 2, 3, 4, 5 })]
+        public int[] TrueLiteral(string program, int[] input)
+        {
+            return Evaluate(program, input);
+        }
+
+        [TestCase("while(false) { output(input()); }", new[] { 1, 2, 3, 4, 5 }, ExpectedResult = new int[] {})]
+        public int[] FalseLiteral(string program, int[] input)
+        {
+            return Evaluate(program, input);
+        }
+
         int[] Evaluate(string program, int[] input)
         {
             var lexer = new Tokenizer();
@@ -41,6 +53,11 @@ namespace HRMC.Test
 
             var v = new ContextualAnalyzer();
             v.VisitProgram(prg);
+
+            foreach (var err in v.Errors)
+            {
+                Console.WriteLine(err.Message);
+            }
 
             Assert.IsEmpty(v.Errors);
 

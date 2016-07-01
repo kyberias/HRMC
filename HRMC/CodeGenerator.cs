@@ -177,6 +177,21 @@ namespace HRMC
             var label2 = GetNewLabel();
             var label3 = GetNewLabel();
 
+            if (stmt.Condition.EvaluatedValue.HasValue)
+            {
+                if (stmt.Condition.EvaluatedValue.Value)
+                {
+                    // condition is always true, always run code
+                    stmt.Statement.Visit(this);
+                    return;
+                }
+                else
+                {
+                    // condition is always false, don't generate code
+                    return;
+                }
+            }
+
             stmt.Condition.Visit(this);
 
             EmitInstruction(Opcode.JumpZ, label1);
@@ -204,7 +219,23 @@ namespace HRMC
             var label1 = GetNewLabel();
             var label2 = GetNewLabel();
             var label3 = GetNewLabel();
+
             EmitInstruction(Opcode.Label, label1);
+
+            if (stmt.Condition.EvaluatedValue.HasValue)
+            {
+                if (stmt.Condition.EvaluatedValue.Value)
+                {
+                    stmt.Statement.Visit(this);
+                    EmitInstruction(Opcode.Jump, label1);
+                    return;
+                }
+                else
+                {
+                    // condition is always false, don't generate code
+                    return;
+                }
+            }
 
             stmt.Condition.Visit(this);
             EmitInstruction(Opcode.JumpZ, label2);
@@ -309,6 +340,11 @@ namespace HRMC
                     EmitInstruction(Opcode.CopyTo, temp);
                 }
             }
+        }
+
+        public void Visit(ConstantLiteralExpression expr)
+        {
+            
         }
     }
 }
