@@ -11,7 +11,9 @@ namespace HRMC
     public enum ContextualErrorCode
     {
         UndefinedVariable,
-        VariableAlreadyDeclared
+        VariableAlreadyDeclared,
+        CannotUseConstPointerValue,
+        ConstantVariableMustHaveValue
     }
 
     public class ContextualError : CompilerError
@@ -29,6 +31,7 @@ namespace HRMC
         {
             public string Name { get; set; }
             public bool Initialized { get; set; }
+            public VariableDeclaration Declaration { get; set; }
         }
 
         List<Variable> variables = new List<Variable>();
@@ -39,6 +42,11 @@ namespace HRMC
         void AddError(string msg, params object[] prms)
         {
             errors.Add(new ContextualError { Message = string.Format(msg, prms) });
+        }
+
+        void AddError(ContextualErrorCode error)
+        {
+            errors.Add(new ContextualError { ErrorCode = error });
         }
 
         public void VisitProgram(Program program)
@@ -59,7 +67,12 @@ namespace HRMC
             }
             else
             {
-                variables.Add(new Variable { Name = vardec.Name, Initialized = vardec.Value != null});
+                variables.Add(new Variable { Name = vardec.Name, Initialized = vardec.Value != null, Declaration = vardec });
+            }
+
+            if (vardec.IsConst && vardec.Value == null)
+            {
+                AddError(ContextualErrorCode.ConstantVariableMustHaveValue);
             }
         }
 
@@ -76,6 +89,7 @@ namespace HRMC
         public void VisitVariableExpression(VariableExpression expr)
         {
             var variable = variables.FirstOrDefault(v => v.Name == expr.Name);
+
             if (variable == null)
             {
                 AddError("{0} not declared.", expr.Name);
@@ -83,6 +97,10 @@ namespace HRMC
             else if(!variable.Initialized)
             {
                 AddError("Using uninitialized variable {0}.", expr.Name);
+            }
+            if (!expr.Indirect && variable.Declaration.Pointer && variable.Declaration.IsConst)
+            {
+                AddError(ContextualErrorCode.CannotUseConstPointerValue);
             }
         }
 
@@ -189,11 +207,11 @@ namespace HRMC
             {
                 expr.Expression2.Visit(this);
             }
-            if (expr.Expression.EvaluatedValue.HasValue && expr.Expression2 != null && expr.Expression2.EvaluatedValue.HasValue)
+            if (expr.Expression.EvaluatedValue != null && expr.Expression2 != null && expr.Expression2.EvaluatedValue != null)
             {
                 if (expr.LogicalOperator == Token.Equals)
                 {
-                    expr.EvaluatedValue = expr.Expression.EvaluatedValue.Value == expr.Expression2.EvaluatedValue.Value;
+                    expr.EvaluatedValue = expr.Expression.EvaluatedValue == expr.Expression2.EvaluatedValue;
                 }
             }
         }
@@ -206,7 +224,7 @@ namespace HRMC
             }
         }
 
-        public void Visit(ConstantLiteralExpression expr)
+        public void Visit<T>(ConstantLiteralExpression<T> expr)
         {
             expr.EvaluatedValue = expr.Value;
         }

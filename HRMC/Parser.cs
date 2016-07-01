@@ -47,6 +47,17 @@ namespace HRMC
             return null;
         }
 
+        bool AcceptElementIfNext(Token type)
+        {
+            var el = PeekElement();
+            if (el.Type == type)
+            {
+                AcceptElement(type);
+                return true;
+            }
+            return false;
+        }
+
         TokenElement AcceptElement(Token type)
         {
             var el = PeekElement();
@@ -96,9 +107,18 @@ namespace HRMC
             if (peeked == Token.False || peeked == Token.True)
             {
                 AcceptElement(peeked);
-                return new ConstantLiteralExpression
+                return new ConstantLiteralExpression<bool>
                 {
                     Value = peeked == Token.True
+                };
+            }
+
+            if (peeked == Token.Number)
+            {
+                var ae = AcceptElement(peeked);
+                return new ConstantLiteralExpression<int>()
+                {
+                    Value = int.Parse(ae.Data)
                 };
             }
 
@@ -247,6 +267,9 @@ namespace HRMC
         VariableDeclaration ParseVariableDeclaration()
         {
             var decl = new VariableDeclaration();
+
+            decl.IsConst = AcceptElementIfNext(Token.Const);
+
             AcceptElement(Token.Int);
 
             if (PeekElement().Type == Token.Asterisk)
@@ -300,6 +323,7 @@ namespace HRMC
                 case Token.While:
                     return ParseWhileStatement();
                 case Token.Int:
+                case Token.Const:
                     return ParseVariableDeclaration();
                 case Token.BlockOpen:
                     return ParseBlockStatement();

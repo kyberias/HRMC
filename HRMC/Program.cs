@@ -15,7 +15,7 @@ namespace HRMC
     {
         public abstract bool IsBooleanType { get; }
 
-        public bool? EvaluatedValue { get; set; }
+        public object EvaluatedValue { get; set; }
     }
 
     public class LogicalExpression : ExpressionBase
@@ -71,9 +71,9 @@ namespace HRMC
         }
     }
 
-    public class ConstantLiteralExpression : PrimaryExpression
+    public class ConstantLiteralExpression<T> : PrimaryExpression
     {
-        public bool Value { get; set; }
+        public T Value { get; set; }
         public override bool IsBooleanType => true;
 
         public override void Visit(IVisitor visitor)
@@ -115,6 +115,7 @@ namespace HRMC
     {
         public string Name { get; set; }
         public bool IsArray { get; set; }
+        public bool IsConst { get; set; }
         public int ArraySize { get; set; }
         public bool Pointer { get; set; }
         public ExpressionBase Value { get; set; }

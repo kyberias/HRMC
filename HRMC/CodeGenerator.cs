@@ -50,6 +50,9 @@ namespace HRMC
                     case Opcode.CopyFrom:
                     case Opcode.CopyTo:
                         return Opcode.ToString().ToUpper() + " " + Operand;
+                    case Opcode.CopyFromIndirect:
+                    case Opcode.CopyToIndirect:
+                        return Opcode.ToString().ToUpper() + " [" + Operand + "]";
                     case Opcode.Jump:
                     case Opcode.JumpZ:
                     case Opcode.JumpLZ:
@@ -96,8 +99,15 @@ namespace HRMC
             errors.Add(new Error { Message = string.Format(msg, prms) });
         }
 
+        struct VarDec
+        {
+            public VariableDeclaration declaration;
+            public int? address;
+            public int? constantValue;
+        }
+
         private int usedVars;
-        Dictionary<string,int> variables = new Dictionary<string, int>();
+        Dictionary<string,VarDec> variables = new Dictionary<string, VarDec>();
         private int labels;
 
         int AllocVariable()
@@ -118,8 +128,22 @@ namespace HRMC
 
         public void VisitVariableDeclaration(VariableDeclaration vardec)
         {
+            if (vardec.Pointer && vardec.Value != null && vardec.Value is ConstantLiteralExpression<int> && vardec.IsConst)
+            {
+                variables[vardec.Name] = new VarDec
+                {
+                    declaration = vardec,
+                    constantValue = (vardec.Value as ConstantLiteralExpression<int>).Value
+                };
+                return;
+            }
+
             var addr = usedVars++;
-            variables[vardec.Name] = addr;
+            variables[vardec.Name] = new VarDec
+            {
+                declaration = vardec,
+                address = addr
+            };
 
             vardec.Value?.Visit(this);
 
@@ -143,11 +167,20 @@ namespace HRMC
         {
             if (expr.Indirect)
             {
-                EmitInstruction(Opcode.CopyFromIndirect, variables[expr.Name]);
+                var variable = variables[expr.Name];
+
+                if (variable.constantValue.HasValue)
+                {
+                    EmitInstruction(Opcode.CopyFrom, variable.constantValue.Value);
+                }
+                else
+                {
+                    EmitInstruction(Opcode.CopyFromIndirect, variable.address.Value);
+                }
             }
             else
             {
-                EmitInstruction(Opcode.CopyFrom, variables[expr.Name]);
+                EmitInstruction(Opcode.CopyFrom, variables[expr.Name].address.Value);
             }
         }
 
@@ -177,9 +210,9 @@ namespace HRMC
             var label2 = GetNewLabel();
             var label3 = GetNewLabel();
 
-            if (stmt.Condition.EvaluatedValue.HasValue)
+            if (stmt.Condition.EvaluatedValue != null)
             {
-                if (stmt.Condition.EvaluatedValue.Value)
+                if ((bool)stmt.Condition.EvaluatedValue)
                 {
                     // condition is always true, always run code
                     stmt.Statement.Visit(this);
@@ -222,9 +255,9 @@ namespace HRMC
 
             EmitInstruction(Opcode.Label, label1);
 
-            if (stmt.Condition.EvaluatedValue.HasValue)
+            if (stmt.Condition.EvaluatedValue != null)
             {
-                if (stmt.Condition.EvaluatedValue.Value)
+                if ((bool)stmt.Condition.EvaluatedValue)
                 {
                     stmt.Statement.Visit(this);
                     EmitInstruction(Opcode.Jump, label1);
@@ -260,11 +293,11 @@ namespace HRMC
             stmt.Value.Visit(this);
             if (stmt.Indirect)
             {
-                EmitInstruction(Opcode.CopyToIndirect, variables[stmt.VariableName]);
+                EmitInstruction(Opcode.CopyToIndirect, variables[stmt.VariableName].address.Value);
             }
             else
             {
-                EmitInstruction(Opcode.CopyTo, variables[stmt.VariableName]);
+                EmitInstruction(Opcode.CopyTo, variables[stmt.VariableName].address.Value);
             }
         }
 
@@ -294,7 +327,7 @@ namespace HRMC
             if (varExpr != null)
             {
                 notVar.Visit(this);
-                EmitInstruction(Opcode.Sub, variables[varExpr.Name]);
+                EmitInstruction(Opcode.Sub, variables[varExpr.Name].address.Value);
                 // Accumulator is zero when left == right
             }
             else
@@ -342,9 +375,9 @@ namespace HRMC
             }
         }
 
-        public void Visit(ConstantLiteralExpression expr)
+        public void Visit<T>(ConstantLiteralExpression<T> expr)
         {
-            
+            //throw new NotImplementedException();
         }
     }
 }

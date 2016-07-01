@@ -6,7 +6,23 @@ namespace HRMC
 {
     public class Interpreter
     {
-        public IEnumerable<int> Interpret(List<CodeGenerator.Instruction> instructions, IEnumerable<int> input)
+        public Interpreter(List<CodeGenerator.Instruction> instructions, int[] mem = null)
+        {
+            this.instructions = instructions;
+            if (mem != null)
+            {
+                memory = mem;
+            }
+            else
+            {
+                memory = new int[100];
+            }
+        }
+
+        private List<CodeGenerator.Instruction> instructions;
+        private int[] memory;
+
+        public IEnumerable<int> Run(IEnumerable<int> input)
         {
             // scan labels
             var labels = instructions
@@ -16,8 +32,6 @@ namespace HRMC
 
             int pc = 0;
             int? acc = 0;
-
-            var memory = new int[100];
 
             var inputen = input.GetEnumerator();
             bool inputvalid = inputen.MoveNext();
@@ -42,6 +56,9 @@ namespace HRMC
                         break;
                     case CodeGenerator.Opcode.CopyFrom:
                         acc = memory[inst.Operand];
+                        break;
+                    case CodeGenerator.Opcode.CopyFromIndirect:
+                        acc = memory[memory[inst.Operand]];
                         break;
                     case CodeGenerator.Opcode.CopyTo:
                         memory[inst.Operand] = acc.Value;

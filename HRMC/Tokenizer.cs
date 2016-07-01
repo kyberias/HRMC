@@ -32,7 +32,8 @@ namespace HRMC
         BracketOpen,
         BracketClose,
         True,
-        False
+        False,
+        Const
     }
 
     public class TokenElement
@@ -123,6 +124,9 @@ namespace HRMC
                                 break;
                             case "false":
                                 yield return new TokenElement(Token.False);
+                                break;
+                            case "const":
+                                yield return new TokenElement(Token.Const);
                                 break;
                             default:
                                 yield return new TokenElement(Token.Symbol, name.ToString());
