@@ -212,7 +212,7 @@ namespace HRMC
             }
             if (expr.Expression.EvaluatedValue != null && expr.Expression2 != null && expr.Expression2.EvaluatedValue != null)
             {
-                if (expr.LogicalOperator == Token.Equals)
+                if (expr.LogicalOperator == Token.Equal)
                 {
                     expr.EvaluatedValue = expr.Expression.EvaluatedValue == expr.Expression2.EvaluatedValue;
                 }

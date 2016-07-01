@@ -15,6 +15,8 @@ namespace HRMC
     {
         public abstract bool IsBooleanType { get; }
 
+        public virtual bool TrueIsZero => true;
+
         public object EvaluatedValue { get; set; }
     }
 
@@ -36,6 +38,7 @@ namespace HRMC
         public Token? LogicalOperator { get; set; }
         public ExpressionBase Expression2 { get; set; }
         public override bool IsBooleanType => LogicalOperator.HasValue;
+        public override bool TrueIsZero => LogicalOperator.Value == Token.Equal;
 
         public override void Visit(IVisitor visitor)
         {

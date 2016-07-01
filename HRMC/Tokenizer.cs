@@ -11,7 +11,8 @@ namespace HRMC
         Symbol,
         Number,
         LessOrEqualTo,
-        Equals, // == 
+        Equal, // == 
+        NotEqual, // != 
         Is, // =
         If,
         While,
@@ -73,6 +74,8 @@ namespace HRMC
                 bool equalSeen = false;
                 bool andSeen = false;
                 bool orSeen = false;
+                bool notSeen = false;
+
                 StringBuilder name = new StringBuilder();
                 StringBuilder number = new StringBuilder();
 
@@ -176,6 +179,9 @@ namespace HRMC
                         case '<':
                             lessThanSeen = true;
                             continue;
+                        case '!':
+                            notSeen = true;
+                            continue;
                         case '&':
                             if (andSeen)
                             {
@@ -206,7 +212,11 @@ namespace HRMC
                             }
                             else if (equalSeen)
                             {
-                                yield return new TokenElement(Token.Equals);
+                                yield return new TokenElement(Token.Equal);
+                            }
+                            else if (notSeen)
+                            {
+                                yield return new TokenElement(Token.NotEqual);
                             }
                             else
                             {
@@ -222,7 +232,8 @@ namespace HRMC
                     lessThanSeen = 
                         equalSeen = 
                         andSeen = 
-                        orSeen = false;
+                        orSeen =
+                        notSeen = false;
                 }
             }
         }

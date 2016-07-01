@@ -87,6 +87,14 @@ namespace HRMC.Test
             return Evaluate(program, input, memory);
         }
 
+        [TestCase(new[] { 2, 2 }, ExpectedResult = new int[] { })]
+        [TestCase(new[] { 1, 2 }, ExpectedResult = new int[] { 3 })]
+        [TestCase(new[] { 2, 1 }, ExpectedResult = new int[] { 3 })]
+        public int[] NotEqual(int[] input)
+        {
+            return Evaluate("int a=input(); int b = input(); if(a != b) { output(a+b); }", input);
+        }
+
         int[] Evaluate(string program, int[] input, int[] memory = null)
         {
             var lexer = new Tokenizer();

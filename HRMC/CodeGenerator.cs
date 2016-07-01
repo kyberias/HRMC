@@ -244,22 +244,43 @@ namespace HRMC
 
             stmt.Condition.Visit(this);
 
-            EmitInstruction(Opcode.JumpZ, label1);
-            EmitInstruction(Opcode.Jump, label2);
-            EmitInstruction(Opcode.Label, label1);
-
-            // Evaluate condition in code
-            stmt.Statement.Visit(this);
-            if (stmt.ElseStatement != null)
+            if (stmt.Condition.TrueIsZero)
             {
-                EmitInstruction(Opcode.Jump, label3);
+                EmitInstruction(Opcode.JumpZ, label1);
+                EmitInstruction(Opcode.Jump, label2);
+                EmitInstruction(Opcode.Label, label1);
+
+                // Evaluate condition in code
+                stmt.Statement.Visit(this);
+                if (stmt.ElseStatement != null)
+                {
+                    EmitInstruction(Opcode.Jump, label3);
+                }
+
+                EmitInstruction(Opcode.Label, label2);
+                if (stmt.ElseStatement != null)
+                {
+                    stmt.ElseStatement.Visit(this);
+                    EmitInstruction(Opcode.Label, label3);
+                }
             }
-
-            EmitInstruction(Opcode.Label, label2);
-            if (stmt.ElseStatement != null)
+            else
             {
-                stmt.ElseStatement.Visit(this);
-                EmitInstruction(Opcode.Label, label3);
+                EmitInstruction(Opcode.JumpZ, label2);
+
+                // Evaluate condition in code
+                stmt.Statement.Visit(this);
+                if (stmt.ElseStatement != null)
+                {
+                    EmitInstruction(Opcode.Jump, label3);
+                }
+
+                EmitInstruction(Opcode.Label, label2);
+                if (stmt.ElseStatement != null)
+                {
+                    stmt.ElseStatement.Visit(this);
+                    EmitInstruction(Opcode.Label, label3);
+                }
             }
 
         }
@@ -336,26 +357,29 @@ namespace HRMC
         {
             // If either expression is variable, calculate the other one first
 
-            var notVar = expr.Expression is VariableExpression ? expr.Expression2 : expr.Expression;
-            var varExpr = notVar == expr.Expression
-                ? expr.Expression2 as VariableExpression
-                : expr.Expression as VariableExpression;
+            //if (expr.LogicalOperator.Value == Token.Equal)
+            {
+                var notVar = expr.Expression is VariableExpression ? expr.Expression2 : expr.Expression;
+                var varExpr = notVar == expr.Expression
+                    ? expr.Expression2 as VariableExpression
+                    : expr.Expression as VariableExpression;
 
-            if (varExpr != null)
-            {
-                notVar.Visit(this);
-                EmitInstruction(Opcode.Sub, variables[varExpr.Name].address.Value);
-                // Accumulator is zero when left == right
-            }
-            else
-            {
-                // Both are non var, we need a temp register
-                expr.Expression.Visit(this);
-                var temp = AllocVariable();
-                EmitInstruction(Opcode.CopyTo, temp);
-                expr.Expression2.Visit(this);
-                EmitInstruction(Opcode.Sub, temp);
-                FreeVariable();
+                if (varExpr != null)
+                {
+                    notVar.Visit(this);
+                    EmitInstruction(Opcode.Sub, variables[varExpr.Name].address.Value);
+                    // Accumulator is zero when left == right
+                }
+                else
+                {
+                    // Both are non var, we need a temp register
+                    expr.Expression.Visit(this);
+                    var temp = AllocVariable();
+                    EmitInstruction(Opcode.CopyTo, temp);
+                    expr.Expression2.Visit(this);
+                    EmitInstruction(Opcode.Sub, temp);
+                    FreeVariable();
+                }
             }
         }
 
