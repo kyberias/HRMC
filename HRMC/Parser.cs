@@ -328,6 +328,7 @@ namespace HRMC
                 case Token.BlockOpen:
                     return ParseBlockStatement();
                 case Token.Symbol:
+                case Token.Asterisk:
                     {
                         var ex = new ExpressionStatement {Condition = ParseExpression()};
                         AcceptElement(Token.Semicolon);

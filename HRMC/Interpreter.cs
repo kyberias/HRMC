@@ -63,6 +63,9 @@ namespace HRMC
                     case CodeGenerator.Opcode.CopyTo:
                         memory[inst.Operand] = acc.Value;
                         break;
+                    case CodeGenerator.Opcode.CopyToIndirect:
+                        memory[memory[inst.Operand]] = acc.Value;
+                        break;
                     case CodeGenerator.Opcode.Jump:
                         pc = labels[inst.TextOperand].ix;
                         break;

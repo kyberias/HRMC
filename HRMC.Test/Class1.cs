@@ -73,6 +73,20 @@ namespace HRMC.Test
             return EvaluateErrors(program).First();
         }
 
+        [TestCase("int buf[50]; const int *Z = 30; int *p = *Z; output(*Z); output(*p);", 
+            new [] { 666 },
+            ExpectedResult = new[] { 0, 1 })]
+        public int[] Arrays(string program, int[] input)
+        {
+            var memory = new int[100];
+            for (int i = 0; i < 100; i++)
+            {
+                memory[i] = i+1;
+            }
+            memory[30] = 0;
+            return Evaluate(program, input, memory);
+        }
+
         int[] Evaluate(string program, int[] input, int[] memory = null)
         {
             var lexer = new Tokenizer();

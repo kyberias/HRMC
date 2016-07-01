@@ -138,6 +138,17 @@ namespace HRMC
                 return;
             }
 
+            if (vardec.IsArray)
+            {
+                variables[vardec.Name] = new VarDec
+                {
+                    declaration = vardec,
+                    address = usedVars
+                };
+                usedVars += vardec.ArraySize;
+                return;
+            }
+
             var addr = usedVars++;
             variables[vardec.Name] = new VarDec
             {
@@ -165,10 +176,9 @@ namespace HRMC
 
         public void VisitVariableExpression(VariableExpression expr)
         {
+            var variable = variables[expr.Name];
             if (expr.Indirect)
             {
-                var variable = variables[expr.Name];
-
                 if (variable.constantValue.HasValue)
                 {
                     EmitInstruction(Opcode.CopyFrom, variable.constantValue.Value);
@@ -180,7 +190,14 @@ namespace HRMC
             }
             else
             {
-                EmitInstruction(Opcode.CopyFrom, variables[expr.Name].address.Value);
+                if (variable.declaration.IsArray)
+                {
+                    expr.EvaluatedValue = variable.address.Value;
+                }
+                else
+                {
+                    EmitInstruction(Opcode.CopyFrom, variables[expr.Name].address.Value);
+                }
             }
         }
 

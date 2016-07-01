@@ -93,11 +93,14 @@ namespace HRMC
             if (variable == null)
             {
                 AddError("{0} not declared.", expr.Name);
+                return;
             }
-            else if(!variable.Initialized)
+
+            if(!variable.Initialized && !variable.Declaration.IsArray)
             {
                 AddError("Using uninitialized variable {0}.", expr.Name);
             }
+
             if (!expr.Indirect && variable.Declaration.Pointer && variable.Declaration.IsConst)
             {
                 AddError(ContextualErrorCode.CannotUseConstPointerValue);

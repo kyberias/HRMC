@@ -1,8 +1,6 @@
 ﻿// Read two strings from input
-int a[10];
-int *aBase = a;
-int b[10];
-int *bBase = b;
+int ad[10];
+int ab[10];
 
 // Pointer types can be initialized with literal addresses
 int *Zptr = 20;
@@ -11,6 +9,9 @@ int *Optr = 19;
 int One = *Optr;
 int *Tptr = 21;
 int Ten = *Tptr;
+
+int *a = *Zptr;
+int *b = *Tptr;
 
 while((*a = input()) != Zero)
 {
