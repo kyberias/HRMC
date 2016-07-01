@@ -22,6 +22,18 @@ namespace HRMC.Test
 
         public int[] CompiledProgramShouldGenerateCorrectOutput(string program, int[] input)
         {
+            return Evaluate(program, input);
+        }
+
+        [TestCase("int a=input(); int b=input(); if(a == b) { output(a+a); } else { output(a-b); }", new[] { 1,1 }, ExpectedResult = new[] { 2 })]
+        [TestCase("int a=input(); int b=input(); if(a == b) { output(a+a); } else { output(a-b); }", new[] { 5, 1 }, ExpectedResult = new[] { 4 })]
+        public int[] IfElse(string program, int[] input)
+        {
+            return Evaluate(program, input);
+        }
+
+        int[] Evaluate(string program, int[] input)
+        {
             var lexer = new Tokenizer();
             var parser = new Parser(lexer.Lex(program));
 

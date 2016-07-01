@@ -21,7 +21,6 @@ namespace HRMC
         a==b && u==i
     */
 
-    // TODO: Support for else
     // TODO: Support for OR (||)
     // TODO: Support for comparision operators (<=, <, >, >=, !=)
     // TODO: Support for variable incrementation (e.g. i++, ++i, i--, --i)
@@ -210,6 +209,12 @@ namespace HRMC
             AcceptElement(Token.ParenClose);
 
             ifs.Statement = ParseStatement();
+
+            if (PeekElement().Type == Token.Else)
+            {
+                AcceptElement(Token.Else);
+                ifs.ElseStatement = ParseStatement();
+            }
 
             return ifs;
         }

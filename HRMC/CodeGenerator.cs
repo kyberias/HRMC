@@ -175,16 +175,28 @@ namespace HRMC
             //throw new System.NotImplementedException();
             var label1 = GetNewLabel();
             var label2 = GetNewLabel();
+            var label3 = GetNewLabel();
 
             stmt.Condition.Visit(this);
+
             EmitInstruction(Opcode.JumpZ, label1);
             EmitInstruction(Opcode.Jump, label2);
             EmitInstruction(Opcode.Label, label1);
 
             // Evaluate condition in code
             stmt.Statement.Visit(this);
+            if (stmt.ElseStatement != null)
+            {
+                EmitInstruction(Opcode.Jump, label3);
+            }
 
             EmitInstruction(Opcode.Label, label2);
+            if (stmt.ElseStatement != null)
+            {
+                stmt.ElseStatement.Visit(this);
+                EmitInstruction(Opcode.Label, label3);
+            }
+
         }
 
         public void VisitWhileStatement(WhileStatement stmt)
