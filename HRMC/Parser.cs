@@ -326,8 +326,6 @@ namespace HRMC
         {
             var decl = new VariableDeclaration();
 
-            decl.IsConst = AcceptElementIfNext(Token.Const);
-
             AcceptElement(Token.Int);
 
             if (PeekElement().Type == Token.Asterisk)
@@ -335,6 +333,8 @@ namespace HRMC
                 AcceptElement(Token.Asterisk);
                 decl.Pointer = true;
             }
+
+            decl.IsConst = AcceptElementIfNext(Token.Const);
 
             decl.Name = AcceptElement(Token.Symbol).Data;
 

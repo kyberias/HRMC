@@ -1,4 +1,4 @@
-﻿const int *Zptr = 24;
+﻿int * const Zptr = 24;
 int arr[15];
 int* a = *Zptr;
 int one = *Zptr;

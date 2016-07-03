@@ -1,8 +1,8 @@
 ﻿// Grab each number from INBOX and send its digits to the OUTBOX. For example 123 becomes 1,2,3
 
-const int *ZeroPtr = 9;
-const int *TenPtr = 10;
-const int *HundredPtr = 11;
+int * const ZeroPtr = 9;
+int * const TenPtr = 10;
+int * const HundredPtr = 11;
 
 int n;
 int ones;

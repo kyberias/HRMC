@@ -1,8 +1,8 @@
 ﻿int ad[10];
 int ab[10];
 
-const int *Zptr = 23;
-const int *Tptr = 24;
+int * const Zptr = 23;
+int * const Tptr = 24;
 
 int *a = *Zptr;
 int *b = *Tptr;

@@ -53,7 +53,7 @@ namespace HRMC.Test
             return Evaluate(program, input);
         }
 
-        [TestCase("const int *a = 5; const int *b = 42; output(*a); output(*b);", new int[] {},
+        [TestCase("int * const a = 5; int * const b = 42; output(*a); output(*b);", new int[] {},
             ExpectedResult = new[] {15, 52})]
         public int[] ConstantPointerVariables(string program, int[] input)
         {
@@ -71,23 +71,23 @@ namespace HRMC.Test
         {
             var mem = new int[10];
             mem[9] = 0;
-            var program = "const int *Zptr = 9; int a = input(); int b = input(); int c = input(); output(" + expression + ");";
+            var program = "int * const Zptr = 9; int a = input(); int b = input(); int c = input(); output(" + expression + ");";
             return Evaluate(program, input);
         }
 
-        [TestCase("const int *a = 5; output(a);", ExpectedResult = ContextualErrorCode.CannotUseConstPointerValue)]
+        [TestCase("int * const a = 5; output(a);", ExpectedResult = ContextualErrorCode.CannotUseConstPointerValue)]
         public ContextualErrorCode ConstantPointerValueShouldNotWork(string program)
         {
             return EvaluateErrors(program).First();
         }
 
-        [TestCase("const int *a;", ExpectedResult = ContextualErrorCode.ConstantVariableMustHaveValue)]
+        [TestCase("int * const a;", ExpectedResult = ContextualErrorCode.ConstantVariableMustHaveValue)]
         public ContextualErrorCode ConstantValueShouldBeMandatory(string program)
         {
             return EvaluateErrors(program).First();
         }
 
-        [TestCase("int buf[50]; const int *Z = 30; int *p = *Z; output(*Z); output(*p);", 
+        [TestCase("int buf[50]; int * const Z = 30; int *p = *Z; output(*Z); output(*p);", 
             new [] { 666 },
             ExpectedResult = new[] { 0, 1 })]
         public int[] Arrays(string program, int[] input)
@@ -162,7 +162,7 @@ namespace HRMC.Test
         {
             var mem = new int[100];
             Array.Copy(memory, mem, memory.Length);
-            return Evaluate("int reserved[4]; const int *addrA = 0; const int *addrB = 1; int *a=*addrA; int *b = *addrB; if(*a " + op+" *b) { output(*a); } ", 
+            return Evaluate("int reserved[4]; int * const addrA = 0; int * const addrB = 1; int *a=*addrA; int *b = *addrB; if(*a " + op+" *b) { output(*a); } ", 
                 new int[] {}, mem);
         }
 
@@ -173,7 +173,7 @@ namespace HRMC.Test
             var prg = @"
 int ad[10];
 
-const int *Zptr = 24;
+int * const Zptr = 24;
 int Zero = *Zptr;
 int *a = *Zptr;
 
@@ -290,6 +290,13 @@ while(*a != 0)
             Assert.AreEqual(23, mem[8]);
 
             return res;
+        }
+
+        [TestCase("int* const ptr = 20; int* const ptrB = 0; ptr = *ptrB;", ExpectedResult = new[] { ContextualErrorCode.ConstValueCannotChange })]
+        public IEnumerable<ContextualErrorCode> ConstTest(string prg)
+        {
+            var errors = EvaluateErrors(prg).ToList();
+            return errors;
         }
 
         string ReadFileFromResource(string filename)

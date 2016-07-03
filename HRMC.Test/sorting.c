@@ -1,6 +1,6 @@
 ﻿int ad[15];
 
-const int *Zptr = 24;
+int * const Zptr = 24;
 int *a;
 int n;
 int i;

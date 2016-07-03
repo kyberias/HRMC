@@ -15,7 +15,8 @@ namespace HRMC
         CannotUseConstPointerValue,
         ConstantVariableMustHaveValue,
         LogicalExpressionCannotContainBothEqualsAndLessthanConditions,
-        MustDefineZeroConstantForDivision
+        MustDefineZeroConstantForDivision,
+        ConstValueCannotChange
     }
 
     public class ContextualError : CompilerError
@@ -196,6 +197,10 @@ namespace HRMC
             else
             {
                 variable.Initialized = true;
+            }
+            if (variable.Declaration.IsConst)
+            {
+                AddError(ContextualErrorCode.ConstValueCannotChange);
             }
         }
 
