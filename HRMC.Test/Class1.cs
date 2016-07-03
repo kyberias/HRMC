@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Remoting;
 using NUnit.Framework;
 
 namespace HRMC.Test
@@ -61,6 +62,21 @@ namespace HRMC.Test
         public int[] ConstantPointerVariables(string program, int[] input)
         {
             return Evaluate(program, input, Enumerable.Range(10, 100).ToArray());
+        }
+
+        [TestCase("a+b+c", new [] { 1, 2, 3 }, ExpectedResult = new[] { 6 })]
+        [TestCase("a*b+c", new[] { 2, 3, 4 }, ExpectedResult = new[] { 10 })]
+        [TestCase("a+b*c", new[] { 2, 3, 4 }, ExpectedResult = new[] { 14 })]
+        [TestCase("a*b*c", new[] { 2, 3, 4 }, ExpectedResult = new[] { 24 })]
+        [TestCase("a/b+c", new[] { 3, 2, 0 }, ExpectedResult = new[] { 1 })]
+        [TestCase("a/b+c", new[] { 30, 5, 2 }, ExpectedResult = new[] { 8 })]
+        [TestCase("a%b+c", new[] { 7, 4, 0 }, ExpectedResult = new[] { 3 })]
+        public int[] Arithmetic(string expression, int[] input)
+        {
+            var mem = new int[10];
+            mem[9] = 0;
+            var program = "const int *Zptr = 9; int a = input(); int b = input(); int c = input(); output(" + expression + ");";
+            return Evaluate(program, input);
         }
 
         [TestCase("const int *a = 5; output(a);", ExpectedResult = ContextualErrorCode.CannotUseConstPointerValue)]
@@ -139,6 +155,14 @@ namespace HRMC.Test
             return Evaluate("int a=input(); int b=input(); if(a<b) { output(a); } ", input);
         }
 
+        /*[TestCase(new[] { 1 }, ExpectedResult = new int[] { 2, 0 })]
+        public int[] PointerArithmetic(int[] input)
+        {
+            var mem = new int[10];
+            mem[9] = 0;
+            return Evaluate("const int *Zptr = 9; int *a=*Zptr; *a = input(); (*a)++; (*a)++; output(*a); output(a);", input, mem);
+        }*/
+
         /*[TestCase(new[] { 5, 4, 3, 2, 1, 5 }, ExpectedResult = new int[] { 4, 3, 2, 1 })]
         [TestCase(new[] { 5, 5 }, ExpectedResult = new int[] {  })]
         public int[] WhileConditions(int[] input)
@@ -160,6 +184,7 @@ namespace HRMC.Test
             return Evaluate("int reserved[4]; const int *addrA = 0; const int *addrB = 1; int *a=*addrA; int *b = *addrB; if(*a " + op+" *b) { output(*a); } ", 
                 new int[] {}, mem);
         }
+
 
         [TestCase(new[] { 1,2,3,4,5,0 }, ExpectedResult = new int[] { 1,2,3,4,5 })]
         public int[] CopyTest(int[] input)
@@ -304,6 +329,28 @@ while(*op != 0)
             mem[11] = 100;
             var src = ReadFileFromResource("digitexploder.c");
             return Evaluate(src, input, mem).ToArray();
+        }
+
+        [TestCase(new[] { 10, 13, 18 }, ExpectedResult = new int[] { 2, 5, 13, 2, 3, 3 })]
+        [Timeout(3000)]
+        public int[] TestPrimes(int[] input)
+        {
+            var mem = new int[25];
+            mem[24] = 0;
+            var src = ReadFileFromResource("primes.c");
+            var res= Evaluate(src, input, mem).ToArray();
+
+            Assert.AreEqual(2, mem[0]);
+            Assert.AreEqual(3, mem[1]);
+            Assert.AreEqual(5, mem[2]);
+            Assert.AreEqual(7, mem[3]);
+            Assert.AreEqual(11, mem[4]);
+            Assert.AreEqual(13, mem[5]);
+            Assert.AreEqual(17, mem[6]);
+            Assert.AreEqual(19, mem[7]);
+            Assert.AreEqual(23, mem[8]);
+
+            return res;
         }
 
         string ReadFileFromResource(string filename)

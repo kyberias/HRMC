@@ -7,10 +7,12 @@ namespace HRMC
     /*
 <lg-op>		= '&&' | '||'
 <eq-op>		= '==' | '!=' | '<' | '>' | '<=' | '>='
+<mop>		= '/' | '%' | '*'
 <op>		= '+' | '-'
 
 <expr> 		= <eq-expr> (<lg-op> <eq-expr>)*
-<eq-expr>	= <op-expr> (<eq-op> <op-expr>)
+<eq-expr>	= <mop-expr> (<eq-op> <mop-expr>)
+<mop-expr>	= <op-expr> (<mop> <op-expr>)*
 <op-expr>	= <prim-expr> (<op> <prim-expr>)*
 <prim-expr>	= <var-expr> | <func-expr> | <asgn-expr> | '(' <expr> ')'
 
@@ -216,10 +218,36 @@ namespace HRMC
             return expr;
         }
 
+        ExpressionBase ParseMultiplyExpression()
+        {
+            var expr = new MultiplyExpression();
+            expr.Expression1 = ParsePrimaryExpression();
+
+            while (true)
+            {
+                var tp = PeekElement().Type;
+                if (tp != Token.Asterisk && tp != Token.Div && tp != Token.Mod)
+                {
+                    return expr.Expression1;
+                }
+
+                if (tp == Token.Asterisk || tp == Token.Div || tp == Token.Mod)
+                {
+                    expr.Operator = tp;
+                    AcceptElement(tp);
+                    expr.Expression2 = ParsePrimaryExpression();
+                    expr = new MultiplyExpression
+                    {
+                        Expression1 = expr
+                    };
+                }
+            }
+        }
+
         ExpressionBase ParseEqualityExpression()
         {
             var expr = new EqualityExpression();
-            expr.Expression = ParseOperationException();
+            expr.Expression = ParseOperationExpression();
 
             var tp = PeekElement().Type;
             if (tp != Token.Equal && tp != Token.LessOrEqualTo && tp != Token.NotEqual && tp != Token.LessThan && tp != Token.GreaterThan && tp != Token.GreaterThanOrEqual)
@@ -231,16 +259,16 @@ namespace HRMC
             {
                 expr.LogicalOperator = tp;
                 AcceptElement(tp);
-                expr.Expression2 = ParseOperationException();
+                expr.Expression2 = ParseOperationExpression();
             }
 
             return expr;
         }
 
-        ExpressionBase ParseOperationException()
+        ExpressionBase ParseOperationExpression()
         {
             var expr = new OperationExpression();
-            expr.Expressions.Add(ParsePrimaryExpression());
+            expr.Expressions.Add(ParseMultiplyExpression());
 
             var tp = PeekElement().Type;
             if (tp != Token.Plus && tp != Token.Minus)
@@ -252,7 +280,7 @@ namespace HRMC
             {
                 expr.Operators.Add(tp);
                 AcceptElement(tp);
-                expr.Expressions.Add(ParsePrimaryExpression());
+                expr.Expressions.Add(ParseMultiplyExpression());
                 tp = PeekElement().Type;
             }
             return expr;
@@ -362,6 +390,7 @@ namespace HRMC
                 case Token.Asterisk:
                 case Token.Increment:
                 case Token.Decrement:
+                case Token.ParenOpen:
                     {
                         var ex = new ExpressionStatement {Condition = ParseExpression()};
                         AcceptElement(Token.Semicolon);

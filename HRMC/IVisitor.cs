@@ -17,6 +17,7 @@ namespace HRMC
         void VisitLogicalExpression(LogicalExpression expr);
         void VisitEqualityExpression(EqualityExpression expr);
         void VisitOperationExpression(OperationExpression expr);
+        void Visit(MultiplyExpression expr);
         void Visit<T>(ConstantLiteralExpression<T> expr);
     }
 }

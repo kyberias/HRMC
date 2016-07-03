@@ -37,7 +37,9 @@ namespace HRMC
         BracketClose,
         True,
         False,
-        Const
+        Const,
+        Mod,
+        Div
     }
 
     public class TokenElement
@@ -97,6 +99,12 @@ namespace HRMC
                             inComment = false;
                         }
                         continue;
+                    }
+
+                    if (divSeen && c != '/')
+                    {
+                        divSeen = false;
+                        yield return new TokenElement(Token.Div);
                     }
 
                     if (plusSeen && c != '+')
@@ -212,6 +220,9 @@ namespace HRMC
                             break;
                         case '*':
                             yield return new TokenElement(Token.Asterisk);
+                            break;
+                        case '%':
+                            yield return new TokenElement(Token.Mod);
                             break;
                         case ';':
                             yield return new TokenElement(Token.Semicolon);

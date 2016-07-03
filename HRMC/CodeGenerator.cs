@@ -665,6 +665,99 @@ namespace HRMC
             FreeVariable(temp);
         }
 
+        void Multiply(MultiplyExpression expr)
+        {
+            expr.Expression1.Visit(this);
+
+            var temp1 = AllocVariable();
+            var res = AllocVariable();
+
+            EmitInstruction(Opcode.CopyTo, temp1);
+            EmitInstruction(Opcode.CopyTo, res);
+            expr.Expression2.Visit(this);
+
+            var endLabel = GetNewLabel();
+            EmitInstruction(Opcode.JumpZ, endLabel);
+
+            var temp2 = AllocVariable();
+            EmitInstruction(Opcode.CopyTo, temp2);
+
+            var loopLabel = GetNewLabel();
+            EmitInstruction(Opcode.Label, loopLabel);
+            EmitInstruction(Opcode.BumpDn, temp2);
+
+            var resultLabel = GetNewLabel();
+            EmitInstruction(Opcode.JumpZ, resultLabel);
+            EmitInstruction(Opcode.CopyFrom, temp1);
+            EmitInstruction(Opcode.Add, res);
+            EmitInstruction(Opcode.CopyTo, res);
+            EmitInstruction(Opcode.Jump, loopLabel);
+
+            EmitInstruction(Opcode.Label, resultLabel);
+            EmitInstruction(Opcode.CopyFrom, res);
+
+            FreeVariable(temp2);
+            FreeVariable(res);
+            FreeVariable(temp1);
+            EmitInstruction(Opcode.Label, endLabel);
+        }
+
+        void Divide(MultiplyExpression expr)
+        {
+            expr.Expression1.Visit(this);
+
+            var temp1 = AllocVariable();
+            var res = AllocVariable();
+
+            EmitInstruction(Opcode.CopyTo, temp1);
+            EmitInstruction(Opcode.CopyFrom, variables["Zptr"].constantValue.Value);
+            EmitInstruction(Opcode.CopyTo, res);
+            expr.Expression2.Visit(this);
+
+            var endLabel = GetNewLabel();
+
+            var temp2 = AllocVariable();
+            EmitInstruction(Opcode.CopyTo, temp2);
+
+            var loopLabel = GetNewLabel();
+            EmitInstruction(Opcode.Label, loopLabel);
+
+            var resultLabel = GetNewLabel();
+            EmitInstruction(Opcode.CopyFrom, temp1);
+            EmitInstruction(Opcode.Sub, temp2);
+            EmitInstruction(Opcode.JumpN, resultLabel);
+            EmitInstruction(Opcode.CopyTo, temp1);
+            EmitInstruction(Opcode.BumpUp, res);
+            EmitInstruction(Opcode.Jump, loopLabel);
+
+            EmitInstruction(Opcode.Label, resultLabel);
+            if (expr.Operator == Token.Div)
+            {
+                EmitInstruction(Opcode.CopyFrom, res);
+            }
+            else
+            {
+                EmitInstruction(Opcode.CopyFrom, temp1);
+            }
+
+            FreeVariable(temp2);
+            FreeVariable(res);
+            FreeVariable(temp1);
+            EmitInstruction(Opcode.Label, endLabel);
+        }
+
+        public void Visit(MultiplyExpression expr)
+        {
+            if (expr.Operator == Token.Asterisk)
+            {
+                Multiply(expr);
+            }
+            else if (expr.Operator == Token.Div || expr.Operator == Token.Mod)
+            {
+                Divide(expr);
+            }
+        }
+
         public void Visit<T>(ConstantLiteralExpression<T> expr)
         {
             //throw new NotImplementedException();

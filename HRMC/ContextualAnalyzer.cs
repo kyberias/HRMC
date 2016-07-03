@@ -15,6 +15,7 @@ namespace HRMC
         CannotUseConstPointerValue,
         ConstantVariableMustHaveValue,
         LogicalExpressionCannotContainBothEqualsAndLessthanConditions,
+        MustDefineZeroConstantForDivision
     }
 
     public class ContextualError : CompilerError
@@ -238,6 +239,20 @@ namespace HRMC
             foreach (var e in expr.Expressions)
             {
                 e.Visit(this);
+            }
+        }
+
+        public void Visit(MultiplyExpression expr)
+        {
+            expr.Expression1.Visit(this);
+            expr.Expression2.Visit(this);
+
+            if (expr.Operator == Token.Div)
+            {
+                if (!variables.Any(v => v.Name == "Zptr"))
+                {
+                    AddError(ContextualErrorCode.MustDefineZeroConstantForDivision);
+                }
             }
         }
 

@@ -100,6 +100,21 @@ namespace HRMC
         }
     }
 
+    public class MultiplyExpression : ExpressionBase
+    {
+        //public List<ExpressionBase> Expressions { get; set; } = new List<ExpressionBase>();
+        //public List<Token> Operators { get; set; } = new List<Token>();
+        public ExpressionBase Expression1 { get; set; }
+        public ExpressionBase Expression2 { get; set; }
+        public Token Operator { get; set; }
+        public override bool IsBooleanType => false;
+
+        public override void Visit(IVisitor visitor)
+        {
+            visitor.Visit(this);
+        }
+    }
+
     public class PrimaryExpression : ExpressionBase
     {
         public override bool IsBooleanType => false;
