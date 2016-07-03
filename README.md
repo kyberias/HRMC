@@ -6,7 +6,10 @@ The C-subset supported is parsed by an LL(1) parser and the feature set is extre
 * Supported keywords: int, if, else, while, true, false
 * Supports basic integer arithmetic (+, -, /, *, %)
 * Supports basic pointer arithmetic
-* Only logical and supported (&&)
+* Supported in-built functions: input(), output(), debug()
+* Only one logical operator supported (&&)
 * Some limitations from HRM:
 	* boolean values cannot be stored into variables
 	* no bit-wise operators
+	* no function definitions
+* No goto since we don't want to piss off Knuth.
