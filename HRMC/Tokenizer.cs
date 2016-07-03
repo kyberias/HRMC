@@ -29,7 +29,7 @@ namespace HRMC
         Plus,
         Minus,
         LogicalAnd, // &&
-        LogicalOr, // &&
+        LogicalOr, // ||
         Asterisk,
         Increment, //++
         Decrement, //--
