@@ -3,12 +3,14 @@ This is a toy C-compiler targeting Human Resource Machine (HRM) game's virtual m
 The C-subset supported is parsed by an LL(1) parser and the feature set is extremely tiny:
 
 * Only int data type supported
-* Supported keywords: int, if, else, while, true, false
+* Supported keywords: int, const, if, else, while, true, false
 * Supports basic integer arithmetic (+, -, /, *, %)
 * Supports basic pointer arithmetic
 * Supported in-built functions: input(), output(), debug()
 * Only one logical operator supported (&&)
 * Some limitations from HRM:
+	* no support for numeric literals (except comparision to zero)
+	* division only possible if a zero integer is available in memory
 	* boolean values cannot be stored into variables
 	* no bit-wise operators
 	* no function definitions

@@ -6,6 +6,9 @@ namespace HRMC
 {
     public class AstBase
     {
+        public int Line { get; set; }
+        public int Column { get; set; }
+
         public virtual void Visit(IVisitor visitor)
         {
 

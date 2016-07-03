@@ -8,7 +8,7 @@ using NUnit.Framework;
 namespace HRMC.Test
 {
     [TestFixture]
-    [Timeout(3000)]
+    //[Timeout(3000)]
     public class CompilerTests
     {
         [TestCase("int a = input(); output(a);", new[] {1}, ExpectedResult = new[] {1}, Description = "Single variable")]
@@ -62,6 +62,7 @@ namespace HRMC.Test
 
         [TestCase("a+b+c", new [] { 1, 2, 3 }, ExpectedResult = new[] { 6 })]
         [TestCase("a*b+c", new[] { 2, 3, 4 }, ExpectedResult = new[] { 10 })]
+        [TestCase("a*(b+c)", new[] { 2, 6, 2 }, ExpectedResult = new[] { 16 })]
         [TestCase("a+b*c", new[] { 2, 3, 4 }, ExpectedResult = new[] { 14 })]
         [TestCase("a*b*c", new[] { 2, 3, 4 }, ExpectedResult = new[] { 24 })]
         [TestCase("a/b+c", new[] { 3, 2, 0 }, ExpectedResult = new[] { 1 })]
@@ -299,6 +300,13 @@ while(*a != 0)
             return errors;
         }
 
+        [TestCase("int arr[20]];", ExpectedResult = new[] { Parser.ParserErrorType.UnexpectedToken })]
+        public IEnumerable<Parser.ParserErrorType> ParserErrors(string prg)
+        {
+            var errors = EvaluateParserErrors(prg).ToList();
+            return errors;
+        }
+
         string ReadFileFromResource(string filename)
         {
             var assembly = Assembly.GetExecutingAssembly();
@@ -319,6 +327,7 @@ while(*a != 0)
             var parser = new Parser(lexer.Lex(program));
 
             var prg = parser.ParseProgram();
+            Assert.IsTrue(parser.Errors.Count == 0);
 
             var v = new ContextualAnalyzer();
             v.VisitProgram(prg);
@@ -348,11 +357,21 @@ while(*a != 0)
             var parser = new Parser(lexer.Lex(program));
 
             var prg = parser.ParseProgram();
+            Assert.IsTrue(parser.Errors.Count == 0);
 
             var v = new ContextualAnalyzer();
             v.VisitProgram(prg);
 
             return v.Errors.Select(e => e.ErrorCode);
+        }
+
+        IEnumerable<Parser.ParserErrorType> EvaluateParserErrors(string program)
+        {
+            var lexer = new Tokenizer();
+            var parser = new Parser(lexer.Lex(program));
+
+            var prg = parser.ParseProgram();
+            return parser.Errors.Select(e => e.Type);
         }
     }
 }

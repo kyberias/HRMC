@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace HRMC
@@ -52,11 +53,23 @@ namespace HRMC
 
         public string Data { get; set; }
 
-        public TokenElement(Token type, string data = null)
+        public int Line { get; set; }
+        public int Column { get; set; }
+
+        public TokenElement(Token type, Character character, string data = null)
         {
             Type = type;
             Data = data;
+            Line = character.line;
+            Column = character.column;
         }
+    }
+
+    public struct Character
+    {
+        public char c;
+        public int line;
+        public int column;
     }
 
     public class Tokenizer
@@ -90,8 +103,10 @@ namespace HRMC
                 StringBuilder name = new StringBuilder();
                 StringBuilder number = new StringBuilder();
 
-                foreach (var c in GetChars(reader))
+                foreach (var ch in GetChars(reader))
                 {
+                    var c = ch.c;
+
                     if (inComment)
                     {
                         if (c == '\n' || c == '\r')
@@ -104,37 +119,37 @@ namespace HRMC
                     if (divSeen && c != '/')
                     {
                         divSeen = false;
-                        yield return new TokenElement(Token.Div);
+                        yield return new TokenElement(Token.Div, ch);
                     }
 
                     if (plusSeen && c != '+')
                     {
                         plusSeen = false;
-                        yield return new TokenElement(Token.Plus);
+                        yield return new TokenElement(Token.Plus, ch);
                     }
 
                     if (minusSeen && c != '-')
                     {
                         minusSeen = false;
-                        yield return new TokenElement(Token.Minus);
+                        yield return new TokenElement(Token.Minus, ch);
                     }
 
                     if (equalSeen && c != '=')
                     {
                         equalSeen = false;
-                        yield return new TokenElement(Token.Is);
+                        yield return new TokenElement(Token.Is, ch);
                     }
 
                     if (greaterThanSeen && c != '=')
                     {
                         greaterThanSeen = false;
-                        yield return new TokenElement(Token.GreaterThan);
+                        yield return new TokenElement(Token.GreaterThan, ch);
                     }
 
                     if (lessThanSeen && c != '=')
                     {
                         lessThanSeen = false;
-                        yield return new TokenElement(Token.LessThan);
+                        yield return new TokenElement(Token.LessThan, ch);
                     }
 
                     if (char.IsLetter(c))
@@ -151,7 +166,7 @@ namespace HRMC
 
                     if (number.Length > 0)
                     {
-                        yield return new TokenElement(Token.Number, number.ToString());
+                        yield return new TokenElement(Token.Number, ch, number.ToString());
                         number.Clear();
                     }
 
@@ -161,28 +176,28 @@ namespace HRMC
                         switch (value)
                         {
                             case "int":
-                                yield return new TokenElement(Token.Int);
+                                yield return new TokenElement(Token.Int, ch);
                                 break;
                             case "if":
-                                yield return new TokenElement(Token.If);
+                                yield return new TokenElement(Token.If, ch);
                                 break;
                             case "else":
-                                yield return new TokenElement(Token.Else);
+                                yield return new TokenElement(Token.Else, ch);
                                 break;
                             case "while":
-                                yield return new TokenElement(Token.While);
+                                yield return new TokenElement(Token.While, ch);
                                 break;
                             case "true":
-                                yield return new TokenElement(Token.True);
+                                yield return new TokenElement(Token.True, ch);
                                 break;
                             case "false":
-                                yield return new TokenElement(Token.False);
+                                yield return new TokenElement(Token.False, ch);
                                 break;
                             case "const":
-                                yield return new TokenElement(Token.Const);
+                                yield return new TokenElement(Token.Const, ch);
                                 break;
                             default:
-                                yield return new TokenElement(Token.Symbol, name.ToString());
+                                yield return new TokenElement(Token.Symbol, ch, name.ToString());
                                 break;
                         }
 
@@ -199,7 +214,7 @@ namespace HRMC
                         case '+':
                             if (plusSeen)
                             {
-                                yield return new TokenElement(Token.Increment);
+                                yield return new TokenElement(Token.Increment, ch);
                             }
                             else
                             {
@@ -210,7 +225,7 @@ namespace HRMC
                         case '-':
                             if (minusSeen)
                             {
-                                yield return new TokenElement(Token.Decrement);
+                                yield return new TokenElement(Token.Decrement, ch);
                             }
                             else
                             {
@@ -219,31 +234,31 @@ namespace HRMC
                             }
                             break;
                         case '*':
-                            yield return new TokenElement(Token.Asterisk);
+                            yield return new TokenElement(Token.Asterisk, ch);
                             break;
                         case '%':
-                            yield return new TokenElement(Token.Mod);
+                            yield return new TokenElement(Token.Mod, ch);
                             break;
                         case ';':
-                            yield return new TokenElement(Token.Semicolon);
+                            yield return new TokenElement(Token.Semicolon, ch);
                             break;
                         case '{':
-                            yield return new TokenElement(Token.BlockOpen);
+                            yield return new TokenElement(Token.BlockOpen, ch);
                             break;
                         case '}':
-                            yield return new TokenElement(Token.BlockClose);
+                            yield return new TokenElement(Token.BlockClose, ch);
                             break;
                         case '[':
-                            yield return new TokenElement(Token.BracketOpen);
+                            yield return new TokenElement(Token.BracketOpen, ch);
                             break;
                         case ']':
-                            yield return new TokenElement(Token.BracketClose);
+                            yield return new TokenElement(Token.BracketClose, ch);
                             break;
                         case '(':
-                            yield return new TokenElement(Token.ParenOpen);
+                            yield return new TokenElement(Token.ParenOpen, ch);
                             break;
                         case ')':
-                            yield return new TokenElement(Token.ParenClose);
+                            yield return new TokenElement(Token.ParenClose, ch);
                             break;
                         case '<':
                             lessThanSeen = true;
@@ -269,7 +284,7 @@ namespace HRMC
                         case '&':
                             if (andSeen)
                             {
-                                yield return new TokenElement(Token.LogicalAnd);
+                                yield return new TokenElement(Token.LogicalAnd, ch);
                             }
                             else
                             {
@@ -280,7 +295,7 @@ namespace HRMC
                         case '|':
                             if (orSeen)
                             {
-                                yield return new TokenElement(Token.LogicalOr);
+                                yield return new TokenElement(Token.LogicalOr, ch);
                             }
                             else
                             {
@@ -292,19 +307,19 @@ namespace HRMC
                         case '=':
                             if (lessThanSeen)
                             {
-                                yield return new TokenElement(Token.LessOrEqualTo);
+                                yield return new TokenElement(Token.LessOrEqualTo, ch);
                             }
                             else if (greaterThanSeen)
                             {
-                                yield return new TokenElement(Token.GreaterThanOrEqual);
+                                yield return new TokenElement(Token.GreaterThanOrEqual, ch);
                             }
                             else if (equalSeen)
                             {
-                                yield return new TokenElement(Token.Equal);
+                                yield return new TokenElement(Token.Equal, ch);
                             }
                             else if (notSeen)
                             {
-                                yield return new TokenElement(Token.NotEqual);
+                                yield return new TokenElement(Token.NotEqual, ch);
                             }
                             else
                             {
@@ -329,18 +344,19 @@ namespace HRMC
             }
         }
 
-        IEnumerable<char> GetChars(StreamReader reader)
+        IEnumerable<Character> GetChars(StreamReader reader)
         {
+            int lineCount = 1;
             while (!reader.EndOfStream)
             {
                 var line = reader.ReadLine();
-                line = line.Trim();
+                line+="\n";
 
-                foreach (var c in line)
+                foreach (var c in line.Select((cc, i) => new Character { c = cc, column = i+1, line = lineCount }))
                 {
                     yield return c;
                 }
-                yield return '\n';
+                lineCount++;
             }
         }
     }

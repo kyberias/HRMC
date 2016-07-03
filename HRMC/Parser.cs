@@ -27,6 +27,7 @@ namespace HRMC
     // TODO: Support for OR (||)
     // TODO: Support for table access (e.g. ptr[0], ptr[a]. ptr[42] is problematic since we don't support integer literals
     // TODO: Reading from uninitialized memory address should result in error
+    // TODO: Support for for
 
     public class Parser
     {
@@ -38,6 +39,21 @@ namespace HRMC
             this.lexicalElements = lexicalElements.ToList();
             cursor = 0;
         }
+
+        public enum ParserErrorType
+        {
+            UnexpectedToken,
+            UnexpectedEndOfFile
+        }
+
+        public class ParserError
+        {
+            public ParserErrorType Type { get; set; }
+            public int Column { get; set; }
+            public int Line { get; set; }
+        }
+
+        public List<ParserError> Errors { get; set; } = new List<ParserError>();
 
         TokenElement PeekElement()
         {
@@ -61,15 +77,38 @@ namespace HRMC
 
         TokenElement AcceptElement(Token type)
         {
-            var el = PeekElement();
-            if (el.Type == type)
+            while (true)
             {
-                cursor++;
-                return el;
-            }
-            else
-            {
-                throw new Exception("Expected " + type);
+                var el = PeekElement();
+
+                if (el == null)
+                {
+                    Errors.Add(new ParserError
+                    {
+                        Type = ParserErrorType.UnexpectedEndOfFile,
+                        Column = el.Column,
+                        Line = el.Line
+                    });
+                    return null;
+                }
+
+                if (el.Type == type)
+                {
+                    cursor++;
+                    return el;
+                }
+
+//                if (Errors.Count == 0 || Errors.Last().Type != ParserErrorType.UnexpectedToken)
+                {
+                    Errors.Add(new ParserError
+                    {
+                        Type = ParserErrorType.UnexpectedToken,
+                        Column = el.Column,
+                        Line = el.Line
+                    });
+                    cursor++;
+                    return new TokenElement(type, new Character {column = el.Column, line = el.Line});
+                }
             }
         }
 
@@ -376,6 +415,9 @@ namespace HRMC
             var element = PeekElement();
             switch (element.Type)
             {
+                case Token.Semicolon:
+                    AcceptElement(Token.Semicolon);
+                    return new Statement();
                 case Token.If:
                     return ParseIfStatement();
                 case Token.While:

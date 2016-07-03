@@ -15,6 +15,11 @@ namespace HRMC
             var parser = new Parser(tokenStream);
             var prg = parser.ParseProgram();
 
+            foreach (var err in parser.Errors)
+            {
+                Console.WriteLine("Error ({0},{1}): {2}", err.Line, err.Column, err.Type);
+            }
+
             var v = new ContextualAnalyzer();
             v.VisitProgram(prg);
 
@@ -23,7 +28,7 @@ namespace HRMC
                 Console.WriteLine(err.Message);
             }
 
-            if (v.Errors.Count > 0)
+            if (v.Errors.Count > 0 || parser.Errors.Count > 0)
             {
                 return;
             }
