@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text;
 
 namespace HRMC
 {
@@ -14,15 +16,17 @@ namespace HRMC
             CopyToIndirect,
             Jump,
             JumpZ,
-            JumpLZ,
+            JumpN,
             Add,
             Sub,
+            SubIndirect,
             Outbox,
             Inbox,
             BumpUp,
             BumpDown,
             BumpUpIndirect,
             BumpDownIndirect,
+            Debug
         }
 
         public class Instruction
@@ -55,15 +59,17 @@ namespace HRMC
                     case Opcode.CopyTo:
                     case Opcode.BumpUp:
                     case Opcode.BumpDown:
+                    case Opcode.Debug:
                         return Opcode.ToString().ToUpper() + " " + Operand;
                     case Opcode.CopyFromIndirect:
                     case Opcode.CopyToIndirect:
+                    case Opcode.SubIndirect:
                     case Opcode.BumpUpIndirect:
                     case Opcode.BumpDownIndirect:
-                        return Opcode.ToString().ToUpper() + " [" + Operand + "]";
+                        return Opcode.ToString().ToUpper().Replace("INDIRECT", "") + " [" + Operand + "]";
                     case Opcode.Jump:
                     case Opcode.JumpZ:
-                    case Opcode.JumpLZ:
+                    case Opcode.JumpN:
                         return Opcode.ToString().ToUpper() + " " + TextOperand;
                     case Opcode.Inbox:
                     case Opcode.Outbox:
@@ -118,8 +124,15 @@ namespace HRMC
         Dictionary<string,VarDec> variables = new Dictionary<string, VarDec>();
         private int labels;
 
+        List<int> reservedAddresses = new List<int>();
+
         int AllocVariable()
         {
+            while (reservedAddresses.Contains(usedVars))
+            {
+                usedVars++;
+            }
+
             return usedVars++;
         }
 
@@ -128,21 +141,39 @@ namespace HRMC
             usedVars--;
         }
 
+        private string labelAlphabet = "abcdefghijklmnopqrstuvwx";
+
         string GetNewLabel()
         {
             labels++;
-            return "l" + labels;
+            return LabelNumToString(labels);
+        }
+
+        string LabelNumToString(int num)
+        {
+            int n = num/labelAlphabet.Length;
+            int m = num%labelAlphabet.Length;
+            StringBuilder sb = new StringBuilder();
+
+            if (n > 0)
+            {
+                sb.Append(labelAlphabet[n]);
+            }
+            sb.Append(labelAlphabet[m]);
+            return sb.ToString();
         }
 
         public void VisitVariableDeclaration(VariableDeclaration vardec)
         {
             if (vardec.Pointer && vardec.Value != null && vardec.Value is ConstantLiteralExpression<int> && vardec.IsConst)
             {
+                int constVal = (vardec.Value as ConstantLiteralExpression<int>).Value;
                 variables[vardec.Name] = new VarDec
                 {
                     declaration = vardec,
-                    constantValue = (vardec.Value as ConstantLiteralExpression<int>).Value
+                    constantValue = constVal
                 };
+                reservedAddresses.Add(constVal);
                 return;
             }
 
@@ -157,7 +188,7 @@ namespace HRMC
                 return;
             }
 
-            var addr = usedVars++;
+            var addr = AllocVariable();
             variables[vardec.Name] = new VarDec
             {
                 declaration = vardec,
@@ -246,13 +277,17 @@ namespace HRMC
                     arg.Visit(this);
                 }
             }
-            if (expr.FunctionName == "output")
+            switch (expr.FunctionName)
             {
-                EmitInstruction(Opcode.Outbox);
-            }
-            if (expr.FunctionName == "input")
-            {
-                EmitInstruction(Opcode.Inbox);
+                case "output":
+                    EmitInstruction(Opcode.Outbox);
+                    break;
+                case "input":
+                    EmitInstruction(Opcode.Inbox);
+                    break;
+                case "debug":
+                    EmitInstruction(Opcode.Debug, ((ConstantLiteralExpression<int>)expr.Arguments[0]).Value);
+                    break;
             }
         }
 
@@ -280,7 +315,7 @@ namespace HRMC
 
             stmt.Condition.Visit(this);
 
-            if (stmt.Condition.TrueIsZero)
+            if (stmt.Condition.Trueness == Trueness.Zero)
             {
                 EmitInstruction(Opcode.JumpZ, label1);
                 EmitInstruction(Opcode.Jump, label2);
@@ -300,7 +335,7 @@ namespace HRMC
                     EmitInstruction(Opcode.Label, label3);
                 }
             }
-            else
+            else if (stmt.Condition.Trueness == Trueness.NotZero)
             {
                 EmitInstruction(Opcode.JumpZ, label2);
 
@@ -318,21 +353,40 @@ namespace HRMC
                     EmitInstruction(Opcode.Label, label3);
                 }
             }
+            else if (stmt.Condition.Trueness == Trueness.LessThanZero)
+            {
+                EmitInstruction(Opcode.JumpN, label1);
+                EmitInstruction(Opcode.Jump, label2);
+                EmitInstruction(Opcode.Label, label1);
+                stmt.Statement.Visit(this);
+                if (stmt.ElseStatement != null)
+                {
+                    EmitInstruction(Opcode.Jump, label3);
+                }
 
+                EmitInstruction(Opcode.Label, label2);
+                if (stmt.ElseStatement != null)
+                {
+                    stmt.ElseStatement.Visit(this);
+                    EmitInstruction(Opcode.Label, label3);
+                }
+            }
+            else
+            {
+                throw new NotSupportedException("Trueness");
+            }
         }
 
         public void VisitWhileStatement(WhileStatement stmt)
         {
             var label1 = GetNewLabel();
-            var label2 = GetNewLabel();
-            var label3 = GetNewLabel();
 
-            EmitInstruction(Opcode.Label, label1);
-
+            // Handle constant value (true/false)
             if (stmt.Condition.EvaluatedValue != null)
             {
                 if ((bool)stmt.Condition.EvaluatedValue)
                 {
+                    EmitInstruction(Opcode.Label, label1);
                     stmt.Statement.Visit(this);
                     EmitInstruction(Opcode.Jump, label1);
                     return;
@@ -344,13 +398,89 @@ namespace HRMC
                 }
             }
 
-            stmt.Condition.Visit(this);
-            EmitInstruction(Opcode.JumpZ, label2);
-            EmitInstruction(Opcode.Jump, label3);
-            EmitInstruction(Opcode.Label, label2);
+            var start = GetNewLabel();
+            var exit = GetNewLabel();
+            EmitInstruction(Opcode.Label, start);
+
+            var cond = stmt.Condition as LogicalExpression;
+
+            var expressions = cond != null ? cond.Expressions : new List<ExpressionBase>() {stmt.Condition};
+
+            // Supporting only AND now
+
+            for (int i = 0; i < expressions.Count; i++)
+            {
+                var e = expressions[i];
+                e.Visit(this);
+
+                //if (i < expr.Expressions.Count - 1)
+                {
+                    if (e.Trueness == Trueness.Zero)
+                    {
+                        var lb = GetNewLabel();
+                        EmitInstruction(Opcode.JumpZ, lb);
+                        EmitInstruction(Opcode.Jump, exit);
+                        EmitInstruction(Opcode.Label, lb);
+                    }
+                    else if (e.Trueness == Trueness.NotZero)
+                    {
+                        EmitInstruction(Opcode.JumpZ, exit);
+                    }
+                    else if (e.Trueness == Trueness.LessThanZero)
+                    {
+                        var lb = GetNewLabel();
+                        EmitInstruction(Opcode.JumpN, lb);
+                        EmitInstruction(Opcode.Jump, exit);
+                        EmitInstruction(Opcode.Label, lb);
+                    }
+                    else
+                    {
+                        throw new NotSupportedException();
+                    }
+                }
+            }
+
             stmt.Statement.Visit(this);
-            EmitInstruction(Opcode.Jump, label1);
-            EmitInstruction(Opcode.Label, label3);
+
+            EmitInstruction(Opcode.Jump, start);
+            EmitInstruction(Opcode.Label, exit);
+
+
+            /*            if (stmt.Condition.Trueness == Trueness.Zero)
+                        {
+                            stmt.Condition.Visit(this);
+                            EmitInstruction(Opcode.JumpZ, label2);
+                            EmitInstruction(Opcode.Jump, label3);
+                            EmitInstruction(Opcode.Label, label2);
+                            stmt.Statement.Visit(this);
+                            EmitInstruction(Opcode.Jump, label1);
+                            EmitInstruction(Opcode.Label, label3);
+                        }
+                        else if (stmt.Condition.Trueness == Trueness.LessThanZero)
+                        {
+                            stmt.Condition.Visit(this);
+                            EmitInstruction(Opcode.JumpN, label2);
+                            EmitInstruction(Opcode.Jump, label3);
+
+                            EmitInstruction(Opcode.Label, label2);
+                            stmt.Statement.Visit(this);
+                            EmitInstruction(Opcode.Jump, label1); // ^
+
+                            EmitInstruction(Opcode.Label, label3);
+                        }
+                        else if (stmt.Condition.Trueness == Trueness.NotZero)
+                        {
+                            stmt.Condition.Visit(this);
+                            EmitInstruction(Opcode.JumpZ, label3);
+                            EmitInstruction(Opcode.JumpN, label3);
+                            stmt.Statement.Visit(this);
+                            EmitInstruction(Opcode.Jump, label1);
+                            EmitInstruction(Opcode.Label, label3);
+                        }
+                        else
+                        {
+                            new NotSupportedException();
+                        }*/
         }
 
         public void VisitBlockStatement(BlockStatement stmt)
@@ -388,47 +518,110 @@ namespace HRMC
                 var e = expr.Expressions[i];
                 e.Visit(this);
 
-                if (i < expr.Expressions.Count - 1)
+                //if (i < expr.Expressions.Count - 1)
                 {
-                    if (e.TrueIsZero)
+                    if (e.Trueness == Trueness.Zero)
                     {
                         var lb = GetNewLabel();
                         EmitInstruction(Opcode.JumpZ, lb);
                         EmitInstruction(Opcode.Jump, exit);
                         EmitInstruction(Opcode.Label, lb);
                     }
-                    else
+                    else if (e.Trueness == Trueness.NotZero)
                     {
                         EmitInstruction(Opcode.JumpZ, exit);
+                        if (expr.Trueness == Trueness.Zero)
+                        {
+                            var temp = AllocVariable();
+                            EmitInstruction(Opcode.CopyTo, temp);
+                            EmitInstruction(Opcode.Sub, temp);
+                            FreeVariable();
+                        }
+                    }
+                    else if (e.Trueness == Trueness.LessThanZero)
+                    {
+                        var lb = GetNewLabel();
+                        EmitInstruction(Opcode.JumpN, lb);
+                        EmitInstruction(Opcode.Jump, exit);
+                        EmitInstruction(Opcode.Label, lb);
+                    }
+                    else
+                    {
+                        throw new NotSupportedException();
                     }
                 }
             }
             EmitInstruction(Opcode.Label, exit);
-            }
+        }
 
         public void VisitEqualityExpression(EqualityExpression expr)
         {
             // If either expression is variable, calculate the other one first
-            var notVar = expr.Expression is VariableExpression ? expr.Expression2 : expr.Expression;
+            /*var notVar = expr.Expression2 is VariableExpression ? expr.Expression : expr.Expression2;
             var varExpr = notVar == expr.Expression
                 ? expr.Expression2 as VariableExpression
-                : expr.Expression as VariableExpression;
+                : expr.Expression as VariableExpression;*/
 
-            if (varExpr != null)
+            if (expr.Expression is VariableExpression && expr.Expression2 is VariableExpression
+                && !((VariableExpression)expr.Expression).Indirect && !((VariableExpression)expr.Expression2).Indirect)
             {
-                notVar.Visit(this);
-                EmitInstruction(Opcode.Sub, variables[varExpr.Name].address.Value);
+                //Debug.Assert(notVar != varExpr);
+                expr.Expression.Visit(this);
+                EmitInstruction(Opcode.Sub, variables[((VariableExpression)expr.Expression2).Name].address.Value);
                 // Accumulator is zero when left == right
             }
             else
             {
-                // Both are non var, we need a temp register
+                // Compare to 0
+
+                var ex1c = expr.Expression as ConstantLiteralExpression<int>;
+                var ex2c = expr.Expression2 as ConstantLiteralExpression<int>;
+
+                if (ex1c != null || ex2c != null)
+                {
+                    if (ex1c == null)
+                    {
+                        expr.Expression.Visit(this);
+                    }
+                    else
+                    {
+                        expr.Expression2.Visit(this);
+                    }
+                    return;
+                }
+
                 expr.Expression.Visit(this);
+                if (expr.Expression2 is VariableExpression && ((VariableExpression) expr.Expression2).Indirect)
+                {
+                    var v = variables[((VariableExpression) expr.Expression2).Name];
+
+                    if (v.declaration.IsConst && v.declaration.Pointer)
+                    {
+                        EmitInstruction(Opcode.Sub, v.constantValue.Value);
+                    }
+                    else
+                    {
+                        EmitInstruction(Opcode.SubIndirect,
+                            v.address.Value);
+                    }
+                }
+                else
+                {
+                    // We need a temp
+                    var temp = AllocVariable();
+                    EmitInstruction(Opcode.CopyTo, temp);
+                    expr.Expression2.Visit(this);
+                    EmitInstruction(Opcode.Sub, temp);
+                    FreeVariable();
+                }
+
+
+                /*expr.Expression2.Visit(this);
                 var temp = AllocVariable();
                 EmitInstruction(Opcode.CopyTo, temp);
-                expr.Expression2.Visit(this);
+                expr.Expression.Visit(this);
                 EmitInstruction(Opcode.Sub, temp);
-                FreeVariable();
+                FreeVariable();*/
             }
         }
 

@@ -75,7 +75,7 @@ namespace HRMC
                             pc = labels[inst.TextOperand].ix;
                         }
                         break;
-                    case CodeGenerator.Opcode.JumpLZ:
+                    case CodeGenerator.Opcode.JumpN:
                         if (acc < 0)
                         {
                             pc = labels[inst.TextOperand].ix;
@@ -86,6 +86,9 @@ namespace HRMC
                         break;
                     case CodeGenerator.Opcode.Sub:
                         acc = acc - memory[inst.Operand];
+                        break;
+                    case CodeGenerator.Opcode.SubIndirect:
+                        acc = acc - memory[memory[inst.Operand]];
                         break;
                     case CodeGenerator.Opcode.BumpUp:
                         acc = memory[inst.Operand]++;
@@ -100,6 +103,9 @@ namespace HRMC
                         acc = memory[memory[inst.Operand]]--;
                         break;
                     case CodeGenerator.Opcode.Label:
+                        break;
+                    case CodeGenerator.Opcode.Debug:
+                        Console.WriteLine("!! Debug: {0}", inst.Operand);
                         break;
                     default:
                         throw new NotSupportedException();

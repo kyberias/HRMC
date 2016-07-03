@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Linq;
 
 namespace HRMC
 {
@@ -6,14 +8,7 @@ namespace HRMC
     {
         static void Main(string[] args)
         {
-            var program = @"
-int u=input();
-int a;
-a = u;
-if(a==a+u+u && u==u && u<=u)
-{
-    output(u); 
-}";
+            var program = File.ReadAllText(args[0]);
 
             var lexer = new Tokenizer();
             var tokenStream = lexer.Lex(program);
@@ -35,8 +30,9 @@ if(a==a+u+u && u==u && u<=u)
 
             var codegen = new CodeGenerator();
             codegen.VisitProgram(prg);
-
-            Console.WriteLine(string.Join("\n", codegen.Instructions));
+            Console.WriteLine("-- HUMAN RESOURCE MACHINE PROGRAM --");
+            Console.WriteLine();
+            Console.WriteLine(string.Join("\r\n", codegen.Instructions.Select(i => i.Opcode == CodeGenerator.Opcode.Label ? i.ToString() : "    " + i.ToString())));
         }
     }
 }

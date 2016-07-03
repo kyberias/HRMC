@@ -125,6 +125,160 @@ namespace HRMC.Test
             return Evaluate("int a=input(); int b=input(); int c=input(); if(a!=b && b!=c && c!=a) { output(a); } ", input);
         }
 
+        [TestCase(new[] { 1, 2 }, ExpectedResult = new int[] { 1 })]
+        [TestCase(new[] { 1, 3 }, ExpectedResult = new int[] { 1 })]
+        [TestCase(new[] { -1, 0 }, ExpectedResult = new int[] { -1 })]
+        [TestCase(new[] { -2, -1 }, ExpectedResult = new int[] { -2 })]
+        [TestCase(new[] { 2, 1 }, ExpectedResult = new int[] {  })]
+        [TestCase(new[] { 1, 1 }, ExpectedResult = new int[] {  })]
+        [TestCase(new[] { 2, 2 }, ExpectedResult = new int[] {  })]
+        public int[] LessThan(int[] input)
+        {
+            return Evaluate("int a=input(); int b=input(); if(a<b) { output(a); } ", input);
+        }
+
+        /*[TestCase(new[] { 5, 4, 3, 2, 1, 5 }, ExpectedResult = new int[] { 4, 3, 2, 1 })]
+        [TestCase(new[] { 5, 5 }, ExpectedResult = new int[] {  })]
+        public int[] WhileConditions(int[] input)
+        {
+            return Evaluate("int a=input(); int b=a; while(b == b && (b = input()) < a && b < a) { output(b); } ", input);
+        }*/
+
+        [TestCase(new[] { 2, 3, 5, 6, 0 }, "==", ExpectedResult = new int[] {  })]
+        [TestCase(new[] { 2, 3, 5, 5, 0 }, "==", ExpectedResult = new int[] { 5 })]
+        [TestCase(new[] { 2, 3, 5, 6, 0 }, "!=", ExpectedResult = new int[] { 5})]
+        [TestCase(new[] { 2, 3, 5, 5, 0 }, "!=", ExpectedResult = new int[] {  })]
+        [TestCase(new[] { 2, 3, 5, 6, 0 }, "<", ExpectedResult = new int[] { 5 })]
+        [TestCase(new[] { 2, 3, 6, 5, 0 }, "<", ExpectedResult = new int[] {  })]
+        [TestCase(new[] { 2, 3, 5, 5, 0 }, "<", ExpectedResult = new int[] { })]
+        public int[] CompareIndirect(int[] memory, string op)
+        {
+            var mem = new int[100];
+            Array.Copy(memory, mem, memory.Length);
+            return Evaluate("int reserved[4]; const int *addrA = 0; const int *addrB = 1; int *a=*addrA; int *b = *addrB; if(*a " + op+" *b) { output(*a); } ", 
+                new int[] {}, mem);
+        }
+
+        [TestCase(new[] { 1,2,3,4,5,0 }, ExpectedResult = new int[] { 1,2,3,4,5 })]
+        public int[] CopyTest(int[] input)
+        {
+            var prg = @"
+int ad[10];
+
+const int *Zptr = 24;
+int Zero = *Zptr;
+int *a = *Zptr;
+
+while((*a = input()) != 0)
+{
+	a++;
+}
+*a = Zero;
+a = Zero;
+
+while(*a != 0)
+{
+    output(*a);
+    a++;
+}
+";
+
+            var mem = new int[100];
+            mem[24] = 0;
+            mem[25] = 1;
+            mem[26] = 10;
+            return Evaluate(prg, input, mem);
+        }
+
+
+        [TestCase(new[] { 1, 2, 3, 4, 0, 1, 2, 4, 3, 0 }, ExpectedResult = new int[] { 1,2,3,4 })]
+        [TestCase(new[] { 1, 2, 3, 4, 0, 1, 2, 3, 1, 0 }, ExpectedResult = new int[] { 1,2,3,1 })]
+        [TestCase(new[] { 1, 2, 3, 4, 0, 1, 2, 3, 0 }, ExpectedResult = new int[] { 1, 2, 3 })]
+        [TestCase(new[] { 1, 2, 3, 0, 1, 2, 3, 4, 0 }, ExpectedResult = new int[] { 1, 2, 3 })]
+        [TestCase(new[] { 1, 2, 3, 0, 1, 2, 3, 0 }, ExpectedResult = new int[] { 1, 2, 3 })]
+        public int[] CompareTest(int[] input)
+        {
+            var prg = @"
+int ad[10];
+int ab[10];
+
+const int *Zptr = 23;
+const int *Tptr = 24;
+
+int *a = *Zptr;
+int *b = *Tptr;
+
+int *op;
+
+while((*a = input()) != 0)
+{
+	++a;
+}
+*a = *Zptr;
+
+while((*b = input()) != 0)
+{
+	++b;
+}
+*b = *Zptr;
+
+a = *Zptr;
+b = *Tptr;
+
+while(*a != 0 && *b != 0 && *a == *b)
+{
+	++a;
+	++b;
+}
+
+if(*a == 0)
+{
+	op = *Zptr;
+}
+else if(*b == 0)
+{
+	op = *Tptr;
+}
+else if(*a < *b)
+{
+	op = *Zptr;
+}
+else
+{
+	op = *Tptr;
+}
+
+while(*op != 0)
+{
+    output(*op);
+    ++op;
+}
+";
+            var mem = new int[25];
+            mem[23] = 0;
+            mem[24] = 10;
+            var res = Evaluate(prg, input, mem).ToArray();
+            Assert.AreEqual(0, mem[23]);
+            Assert.AreEqual(10, mem[24]);
+
+            int i = 0;
+            while (input[i] != 0)
+            {
+                Assert.AreEqual(input[i], mem[i]);
+                i++;
+            }
+            i += 1;
+            int j = 10;
+            while (input[i] != 0)
+            {
+                Assert.AreEqual(input[i], mem[j]);
+                i++;
+                j++;
+            }
+
+            return res;
+        }
+
         int[] Evaluate(string program, int[] input, int[] memory = null)
         {
             var lexer = new Tokenizer();
@@ -146,6 +300,7 @@ namespace HRMC.Test
             codegen.VisitProgram(prg);
 
             Console.WriteLine(string.Join("\n", codegen.Instructions));
+            Console.WriteLine();
 
             var intr = new Interpreter(codegen.Instructions, memory);
             return intr.Run(input).ToArray();

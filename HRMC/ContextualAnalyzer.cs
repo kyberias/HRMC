@@ -13,7 +13,8 @@ namespace HRMC
         UndefinedVariable,
         VariableAlreadyDeclared,
         CannotUseConstPointerValue,
-        ConstantVariableMustHaveValue
+        ConstantVariableMustHaveValue,
+        LogicalExpressionCannotContainBothEqualsAndLessthanConditions,
     }
 
     public class ContextualError : CompilerError
@@ -123,6 +124,13 @@ namespace HRMC
                     AddError("output() should have one argument.");
                 }
             }
+            else if (expr.FunctionName == "debug")
+            {
+                if (expr.Arguments == null || expr.Arguments.Length != 1)
+                {
+                    AddError("debug() should have one argument.");
+                }
+            }
             else
             {
                 AddError("Unknown function {0}.", expr.FunctionName);
@@ -200,6 +208,12 @@ namespace HRMC
             foreach (var e in expr.Expressions)
             {
                 e.Visit(this);
+            }
+
+            if (expr.Expressions.Any(e => e.Trueness == Trueness.Zero) &&
+                expr.Expressions.Any(e => e.Trueness == Trueness.LessThanZero))
+            {
+                AddError(ContextualErrorCode.LogicalExpressionCannotContainBothEqualsAndLessthanConditions);
             }
         }
 

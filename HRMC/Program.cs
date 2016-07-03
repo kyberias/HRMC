@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace HRMC
@@ -11,11 +12,19 @@ namespace HRMC
         }
     }
 
+    public enum Trueness
+    {
+        Zero,
+        NotZero,
+        LessThanZero,
+        MoreThanZero
+    }
+
     public abstract class ExpressionBase : AstBase
     {
         public abstract bool IsBooleanType { get; }
 
-        public virtual bool TrueIsZero => true;
+        public virtual Trueness Trueness => Trueness.Zero;
 
         public object EvaluatedValue { get; set; }
     }
@@ -26,7 +35,12 @@ namespace HRMC
         public List<Token> LogicalOperators { get; set; } = new List<Token>();
         public override bool IsBooleanType => LogicalOperators.Any() || Expressions.Any(e => e.IsBooleanType);
 
-        public override bool TrueIsZero => Expressions.TrueForAll(e => e.TrueIsZero);
+        public override Trueness Trueness =>
+            Expressions.TrueForAll(e => e.Trueness == Trueness.NotZero)
+                ? Trueness.NotZero
+                : Expressions.TrueForAll(e => e.Trueness == Trueness.LessThanZero)
+                    ? Trueness.LessThanZero
+                    : Trueness.Zero;
 
         public override void Visit(IVisitor visitor)
         {
@@ -40,7 +54,12 @@ namespace HRMC
         public Token? LogicalOperator { get; set; }
         public ExpressionBase Expression2 { get; set; }
         public override bool IsBooleanType => LogicalOperator.HasValue;
-        public override bool TrueIsZero => LogicalOperator.Value == Token.Equal;
+
+        public override Trueness Trueness => LogicalOperator == Token.Equal
+            ? Trueness.Zero
+            : LogicalOperator == Token.NotEqual
+                ? Trueness.NotZero
+                : LogicalOperator == Token.LessThan ? Trueness.LessThanZero : Trueness.MoreThanZero;
 
         public override void Visit(IVisitor visitor)
         {

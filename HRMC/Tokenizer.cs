@@ -11,6 +11,7 @@ namespace HRMC
         Symbol,
         Number,
         LessOrEqualTo,
+        LessThan,
         Equal, // == 
         NotEqual, // != 
         Is, // =
@@ -99,6 +100,12 @@ namespace HRMC
                     {
                         equalSeen = false;
                         yield return new TokenElement(Token.Is);
+                    }
+
+                    if (lessThanSeen && c != '=')
+                    {
+                        lessThanSeen = false;
+                        yield return new TokenElement(Token.LessThan);
                     }
 
                     if (char.IsLetter(c))
