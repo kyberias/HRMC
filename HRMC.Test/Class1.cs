@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 
 namespace HRMC.Test
@@ -199,6 +201,7 @@ while(*a != 0)
         public int[] CompareTest(int[] input)
         {
             var prg = @"
+// Comment
 int ad[10];
 int ab[10];
 
@@ -277,6 +280,44 @@ while(*op != 0)
             }
 
             return res;
+        }
+
+        [TestCase(new[] { 1, 2, 3, 4, 5, 0, }, ExpectedResult = new int[] { 1, 2, 3, 4, 5 })]
+        [TestCase(new[] { 5, 4, 3, 2, 1, 0, }, ExpectedResult = new int[] { 1, 2, 3, 4, 5 })]
+        [TestCase(new[] { 5, 3, 4, 2, 5, 0, }, ExpectedResult = new int[] { 2, 3, 4, 5, 5 })]
+        [TestCase(new[] { 5, 0, }, ExpectedResult = new int[] { 5 })]
+        [TestCase(new[] { 5, 3, 4, 2, 5, 0, 1, 5, 4, 3, 0}, ExpectedResult = new int[] { 2, 3, 4, 5, 5, 1, 3, 4, 5  })]
+        public int[] TestSort(int[] input)
+        {
+            var mem = new int[25];
+            mem[24] = 0;
+            var src = ReadFileFromResource("sorting.c");
+            return Evaluate(src, input, mem).ToArray();
+        }
+
+        [TestCase(new[] { 358, 42, 6 }, ExpectedResult = new int[] { 3, 5, 8, 4, 2, 6 })]
+        public int[] TestDigitExploder(int[] input)
+        {
+            var mem = new int[12];
+            mem[9] = 0;
+            mem[10] = 10;
+            mem[11] = 100;
+            var src = ReadFileFromResource("digitexploder.c");
+            return Evaluate(src, input, mem).ToArray();
+        }
+
+        string ReadFileFromResource(string filename)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = "HRMC.Test." + filename;
+
+            using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+            {
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    return reader.ReadToEnd();
+                }
+            }
         }
 
         int[] Evaluate(string program, int[] input, int[] memory = null)

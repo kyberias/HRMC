@@ -222,12 +222,12 @@ namespace HRMC
             expr.Expression = ParseOperationException();
 
             var tp = PeekElement().Type;
-            if (tp != Token.Equal && tp != Token.LessOrEqualTo && tp != Token.NotEqual && tp != Token.LessThan)
+            if (tp != Token.Equal && tp != Token.LessOrEqualTo && tp != Token.NotEqual && tp != Token.LessThan && tp != Token.GreaterThan && tp != Token.GreaterThanOrEqual)
             {
                 return expr.Expression;
             }
 
-            if (tp == Token.Equal || tp == Token.LessOrEqualTo || tp == Token.NotEqual || tp == Token.LessThan)
+            if (tp == Token.Equal || tp == Token.LessOrEqualTo || tp == Token.NotEqual || tp == Token.LessThan || tp == Token.GreaterThan || tp == Token.GreaterThanOrEqual)
             {
                 expr.LogicalOperator = tp;
                 AcceptElement(tp);

@@ -23,7 +23,7 @@ namespace HRMC
             Outbox,
             Inbox,
             BumpUp,
-            BumpDown,
+            BumpDn,
             BumpUpIndirect,
             BumpDownIndirect,
             Debug
@@ -58,7 +58,7 @@ namespace HRMC
                     case Opcode.CopyFrom:
                     case Opcode.CopyTo:
                     case Opcode.BumpUp:
-                    case Opcode.BumpDown:
+                    case Opcode.BumpDn:
                     case Opcode.Debug:
                         return Opcode.ToString().ToUpper() + " " + Operand;
                     case Opcode.CopyFromIndirect:
@@ -136,9 +136,10 @@ namespace HRMC
             return usedVars++;
         }
 
-        void FreeVariable()
+        void FreeVariable(int v)
         {
             usedVars--;
+            Debug.Assert(v == usedVars);
         }
 
         private string labelAlphabet = "abcdefghijklmnopqrstuvwx";
@@ -235,9 +236,9 @@ namespace HRMC
                 {
                     var v = AllocVariable();
                     EmitInstruction(Opcode.CopyTo, v);
-                    EmitInstruction(expr.PostIncrement ? Opcode.BumpUp : Opcode.BumpDown, variable.address.Value);
+                    EmitInstruction(expr.PostIncrement ? Opcode.BumpUp : Opcode.BumpDn, variable.address.Value);
                     EmitInstruction(Opcode.CopyFrom, v);
-                    FreeVariable();
+                    FreeVariable(v);
                 }
             }
             else
@@ -250,7 +251,7 @@ namespace HRMC
                 {
                     if (expr.PreIncrement || expr.PreDecrement)
                     {
-                        EmitInstruction(expr.PreIncrement ? Opcode.BumpUp : Opcode.BumpDown, variable.address.Value);
+                        EmitInstruction(expr.PreIncrement ? Opcode.BumpUp : Opcode.BumpDn, variable.address.Value);
                     }
                     else
                     {
@@ -261,9 +262,9 @@ namespace HRMC
                 {
                     var v = AllocVariable();
                     EmitInstruction(Opcode.CopyTo, v);
-                    EmitInstruction(expr.PostIncrement ? Opcode.BumpUp : Opcode.BumpDown, variable.address.Value);
+                    EmitInstruction(expr.PostIncrement ? Opcode.BumpUp : Opcode.BumpDn, variable.address.Value);
                     EmitInstruction(Opcode.CopyFrom, v);
-                    FreeVariable();
+                    FreeVariable(v);
                 }
             }
         }
@@ -379,7 +380,7 @@ namespace HRMC
 
         public void VisitWhileStatement(WhileStatement stmt)
         {
-            var label1 = GetNewLabel();
+            var label1 = GetNewLabel() + "while";
 
             // Handle constant value (true/false)
             if (stmt.Condition.EvaluatedValue != null)
@@ -398,8 +399,8 @@ namespace HRMC
                 }
             }
 
-            var start = GetNewLabel();
-            var exit = GetNewLabel();
+            var start = GetNewLabel() + "while";
+            var exit = GetNewLabel() + "while";
             EmitInstruction(Opcode.Label, start);
 
             var cond = stmt.Condition as LogicalExpression;
@@ -415,27 +416,32 @@ namespace HRMC
 
                 //if (i < expr.Expressions.Count - 1)
                 {
-                    if (e.Trueness == Trueness.Zero)
+                    switch (e.Trueness)
                     {
-                        var lb = GetNewLabel();
-                        EmitInstruction(Opcode.JumpZ, lb);
-                        EmitInstruction(Opcode.Jump, exit);
-                        EmitInstruction(Opcode.Label, lb);
-                    }
-                    else if (e.Trueness == Trueness.NotZero)
-                    {
-                        EmitInstruction(Opcode.JumpZ, exit);
-                    }
-                    else if (e.Trueness == Trueness.LessThanZero)
-                    {
-                        var lb = GetNewLabel();
-                        EmitInstruction(Opcode.JumpN, lb);
-                        EmitInstruction(Opcode.Jump, exit);
-                        EmitInstruction(Opcode.Label, lb);
-                    }
-                    else
-                    {
-                        throw new NotSupportedException();
+                        case Trueness.Zero:
+                            {
+                                var lb = GetNewLabel();
+                                EmitInstruction(Opcode.JumpZ, lb);
+                                EmitInstruction(Opcode.Jump, exit);
+                                EmitInstruction(Opcode.Label, lb);
+                            }
+                            break;
+                        case Trueness.NotZero:
+                            EmitInstruction(Opcode.JumpZ, exit);
+                            break;
+                        case Trueness.LessThanZero:
+                            {
+                                var lb = GetNewLabel();
+                                EmitInstruction(Opcode.JumpN, lb);
+                                EmitInstruction(Opcode.Jump, exit);
+                                EmitInstruction(Opcode.Label, lb);
+                            }
+                            break;
+                        case Trueness.MoreThanOrZero:
+                            EmitInstruction(Opcode.JumpN, exit);
+                            break;
+                        default:
+                           throw new NotSupportedException();
                     }
                 }
             }
@@ -535,7 +541,7 @@ namespace HRMC
                             var temp = AllocVariable();
                             EmitInstruction(Opcode.CopyTo, temp);
                             EmitInstruction(Opcode.Sub, temp);
-                            FreeVariable();
+                            FreeVariable(temp);
                         }
                     }
                     else if (e.Trueness == Trueness.LessThanZero)
@@ -612,7 +618,7 @@ namespace HRMC
                     EmitInstruction(Opcode.CopyTo, temp);
                     expr.Expression2.Visit(this);
                     EmitInstruction(Opcode.Sub, temp);
-                    FreeVariable();
+                    FreeVariable(temp);
                 }
 
 
@@ -647,7 +653,7 @@ namespace HRMC
                         EmitInstruction(Opcode.CopyFrom, temp);
                         EmitInstruction(Opcode.Sub, t2);
 
-                        FreeVariable();
+                        FreeVariable(t2);
                     }
                 }
 
@@ -656,6 +662,7 @@ namespace HRMC
                     EmitInstruction(Opcode.CopyTo, temp);
                 }
             }
+            FreeVariable(temp);
         }
 
         public void Visit<T>(ConstantLiteralExpression<T> expr)

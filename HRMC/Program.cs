@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -17,7 +18,9 @@ namespace HRMC
         Zero,
         NotZero,
         LessThanZero,
-        MoreThanZero
+        LessThanOrZero,
+        MoreThanZero,
+        MoreThanOrZero
     }
 
     public abstract class ExpressionBase : AstBase
@@ -55,11 +58,29 @@ namespace HRMC
         public ExpressionBase Expression2 { get; set; }
         public override bool IsBooleanType => LogicalOperator.HasValue;
 
-        public override Trueness Trueness => LogicalOperator == Token.Equal
-            ? Trueness.Zero
-            : LogicalOperator == Token.NotEqual
-                ? Trueness.NotZero
-                : LogicalOperator == Token.LessThan ? Trueness.LessThanZero : Trueness.MoreThanZero;
+        public override Trueness Trueness
+        {
+            get
+            {
+                switch (LogicalOperator)
+                {
+                    case Token.Equal:
+                        return Trueness.Zero;
+                    case Token.NotEqual:
+                        return Trueness.NotZero;
+                    case Token.GreaterThan:
+                        return Trueness.MoreThanZero;
+                    case Token.GreaterThanOrEqual:
+                        return Trueness.MoreThanOrZero;
+                    case Token.LessThan:
+                        return Trueness.LessThanZero;
+                    case Token.LessOrEqualTo:
+                        return Trueness.LessThanOrZero;
+                    default:
+                        throw new NotSupportedException();
+                }
+            }
+        }
 
         public override void Visit(IVisitor visitor)
         {

@@ -12,6 +12,8 @@ namespace HRMC
         Number,
         LessOrEqualTo,
         LessThan,
+        GreaterThan,
+        GreaterThanOrEqual,
         Equal, // == 
         NotEqual, // != 
         Is, // =
@@ -72,18 +74,31 @@ namespace HRMC
             using (var reader = new StreamReader(stream))
             {
                 bool lessThanSeen = false;
+                bool greaterThanSeen = false;
                 bool equalSeen = false;
                 bool andSeen = false;
                 bool orSeen = false;
                 bool notSeen = false;
                 bool plusSeen = false;
                 bool minusSeen = false;
+                bool divSeen = false;
+
+                bool inComment = false;
 
                 StringBuilder name = new StringBuilder();
                 StringBuilder number = new StringBuilder();
 
                 foreach (var c in GetChars(reader))
                 {
+                    if (inComment)
+                    {
+                        if (c == '\n' || c == '\n')
+                        {
+                            inComment = false;
+                        }
+                        continue;
+                    }
+
                     if (plusSeen && c != '+')
                     {
                         plusSeen = false;
@@ -100,6 +115,12 @@ namespace HRMC
                     {
                         equalSeen = false;
                         yield return new TokenElement(Token.Is);
+                    }
+
+                    if (greaterThanSeen && c != '=')
+                    {
+                        greaterThanSeen = false;
+                        yield return new TokenElement(Token.GreaterThan);
                     }
 
                     if (lessThanSeen && c != '=')
@@ -216,9 +237,23 @@ namespace HRMC
                         case '<':
                             lessThanSeen = true;
                             continue;
+                        case '>':
+                            greaterThanSeen = true;
+                            continue;
                         case '!':
                             notSeen = true;
                             continue;
+                        case '/':
+                            if (divSeen)
+                            {
+                                inComment = true;
+                            }
+                            else
+                            {
+                                divSeen = true;
+                            }
+                            continue;
+
                         case '&':
                             if (andSeen)
                             {
@@ -247,6 +282,10 @@ namespace HRMC
                             {
                                 yield return new TokenElement(Token.LessOrEqualTo);
                             }
+                            else if (greaterThanSeen)
+                            {
+                                yield return new TokenElement(Token.GreaterThanOrEqual);
+                            }
                             else if (equalSeen)
                             {
                                 yield return new TokenElement(Token.Equal);
@@ -265,7 +304,8 @@ namespace HRMC
                             throw new Exception("Unknown token " + c);
                     }
 
-                    lessThanSeen = 
+                    lessThanSeen =
+                        greaterThanSeen =
                         equalSeen = 
                         andSeen = 
                         orSeen =

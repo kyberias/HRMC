@@ -57,6 +57,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="digitexploder.c" />
+    <EmbeddedResource Include="sorting.c" />
     <Content Include="compare.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

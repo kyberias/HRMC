@@ -96,7 +96,7 @@ namespace HRMC
                     case CodeGenerator.Opcode.BumpUpIndirect:
                         acc = memory[memory[inst.Operand]]++;
                         break;
-                    case CodeGenerator.Opcode.BumpDown:
+                    case CodeGenerator.Opcode.BumpDn:
                         acc = memory[inst.Operand]--;
                         break;
                     case CodeGenerator.Opcode.BumpDownIndirect:
