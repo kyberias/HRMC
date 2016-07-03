@@ -206,63 +206,8 @@ while(*a != 0)
         [TestCase(new[] { 1, 2, 3, 0, 1, 2, 3, 0 }, ExpectedResult = new int[] { 1, 2, 3 })]
         public int[] CompareTest(int[] input)
         {
-            var prg = @"
-// Comment
-int ad[10];
-int ab[10];
+            var prg = ReadFileFromResource("compare.c");
 
-const int *Zptr = 23;
-const int *Tptr = 24;
-
-int *a = *Zptr;
-int *b = *Tptr;
-
-int *op;
-
-while((*a = input()) != 0)
-{
-	++a;
-}
-*a = *Zptr;
-
-while((*b = input()) != 0)
-{
-	++b;
-}
-*b = *Zptr;
-
-a = *Zptr;
-b = *Tptr;
-
-while(*a != 0 && *b != 0 && *a == *b)
-{
-	++a;
-	++b;
-}
-
-if(*a == 0)
-{
-	op = *Zptr;
-}
-else if(*b == 0)
-{
-	op = *Tptr;
-}
-else if(*a < *b)
-{
-	op = *Zptr;
-}
-else
-{
-	op = *Tptr;
-}
-
-while(*op != 0)
-{
-    output(*op);
-    ++op;
-}
-";
             var mem = new int[25];
             mem[23] = 0;
             mem[24] = 10;
@@ -381,10 +326,12 @@ while(*op != 0)
             var codegen = new CodeGenerator();
             codegen.VisitProgram(prg);
 
-            Console.WriteLine(string.Join("\n", codegen.Instructions));
+            var instructions = Optimizations.Optimize(codegen.Instructions).ToList();
+
+            Console.WriteLine(string.Join("\n", instructions));
             Console.WriteLine();
 
-            var intr = new Interpreter(codegen.Instructions, memory);
+            var intr = new Interpreter(instructions, memory);
             return intr.Run(input).ToArray();
         }
 

@@ -6,47 +6,48 @@ int *p = *Zptr;
 int *q;
 int n;
 
+// Generate primes
 ++one;
 n = one;
 ++n;
-*p = n; 
+*p = n; // 2
 ++p;
 ++n;
-*p = n; 
-++p;
-++n;
-++n;
-*p = n;
+*p = n; // 3
 ++p;
 ++n;
 ++n;
-*p = n;
+*p = n; // 5
 ++p;
 ++n;
 ++n;
-++n;
-++n;
-*p = n;
-++p;
-++n;
-++n;
-*p = n;
+*p = n; // 7
 ++p;
 ++n;
 ++n;
 ++n;
 ++n;
-*p = n;
+*p = n; // 11
 ++p;
 ++n;
 ++n;
-*p = n;
+*p = n; // 13
 ++p;
 ++n;
 ++n;
 ++n;
 ++n;
-*p = n;
+*p = n; // 17
+++p;
+++n;
+++n;
+*p = n; // 19
+++p;
+++n;
+++n;
+++n;
+++n;
+*p = n; // 23
 
 while (true)
 {

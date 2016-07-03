@@ -48,6 +48,7 @@
     <Compile Include="Parser.cs" />
     <Compile Include="ContextualAnalyzer.cs" />
     <Compile Include="HrmcProgram.cs" />
+    <Compile Include="Optimizations.cs" />
     <Compile Include="Tokenizer.cs" />
     <Compile Include="IVisitor.cs" />
     <Compile Include="AST.cs" />

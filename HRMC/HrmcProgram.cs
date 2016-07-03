@@ -30,9 +30,12 @@ namespace HRMC
 
             var codegen = new CodeGenerator();
             codegen.VisitProgram(prg);
+
+            var instructions = Optimizations.Optimize(codegen.Instructions).ToList();
+
             Console.WriteLine("-- HUMAN RESOURCE MACHINE PROGRAM --");
             Console.WriteLine();
-            Console.WriteLine(string.Join("\r\n", codegen.Instructions.Select(i => i.Opcode == CodeGenerator.Opcode.Label ? i.ToString() : "    " + i.ToString())));
+            Console.WriteLine(string.Join("\r\n", instructions.Select(i => i.Opcode == CodeGenerator.Opcode.Label ? i.ToString() : "    " + i.ToString())));
         }
     }
 }

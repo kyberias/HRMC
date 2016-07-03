@@ -61,7 +61,7 @@
     <EmbeddedResource Include="primes.c" />
     <EmbeddedResource Include="digitexploder.c" />
     <EmbeddedResource Include="sorting.c" />
-    <Content Include="compare.txt" />
+    <EmbeddedResource Include="compare.c" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

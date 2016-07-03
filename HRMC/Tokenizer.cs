@@ -94,7 +94,7 @@ namespace HRMC
                 {
                     if (inComment)
                     {
-                        if (c == '\n' || c == '\n')
+                        if (c == '\n' || c == '\r')
                         {
                             inComment = false;
                         }
@@ -258,6 +258,7 @@ namespace HRMC
                             if (divSeen)
                             {
                                 inComment = true;
+                                divSeen = false;
                             }
                             else
                             {
@@ -322,7 +323,8 @@ namespace HRMC
                         orSeen =
                         notSeen = 
                         plusSeen = 
-                        minusSeen = false;
+                        minusSeen = 
+                        divSeen = false;
                 }
             }
         }
@@ -332,18 +334,13 @@ namespace HRMC
             while (!reader.EndOfStream)
             {
                 var line = reader.ReadLine();
-
                 line = line.Trim();
-
-                if (line.Length > 1 && line.StartsWith("//"))
-                {
-                    continue;
-                }
 
                 foreach (var c in line)
                 {
                     yield return c;
                 }
+                yield return '\n';
             }
         }
     }
