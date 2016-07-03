@@ -19,27 +19,27 @@ while (true)
 
 	while (n - *HundredPtr >= 0)
 	{
-		debug(1);
 		n = n - *HundredPtr;
 		++hundreds;
 	}
 
 	if (hundreds != 0)
 	{
-		debug(2);
 		output(hundreds);
 	}
 
 	while (n - *TenPtr >= 0)
 	{
-		debug(3);
 		n = n - *TenPtr;
 		++tens;
 	}
 
-	if (tens != 0)
+	if (hundreds != 0)
 	{
-		debug(4);
+		output(tens);
+	}
+	else if (tens != 0)
+	{
 		output(tens);
 	}
 	output(n);

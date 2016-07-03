@@ -295,7 +295,7 @@ while(*op != 0)
             return Evaluate(src, input, mem).ToArray();
         }
 
-        [TestCase(new[] { 358, 42, 6 }, ExpectedResult = new int[] { 3, 5, 8, 4, 2, 6 })]
+        [TestCase(new[] { 502, 358, 42, 6 }, ExpectedResult = new int[] { 5, 0, 2, 3, 5, 8, 4, 2, 6 })]
         public int[] TestDigitExploder(int[] input)
         {
             var mem = new int[12];
