@@ -23,9 +23,8 @@ namespace HRMC
         a==b && u==i
     */
 
+    // TODO: Correct pointer arithmetic: *a++, (*a)++
     // TODO: Support for OR (||)
-    // TODO: Support for comparision operators (<=, <, >, >=, !=)
-    // TODO: Support for variable incrementation (e.g. i++, ++i, i--, --i)
     // TODO: Support for table access (e.g. ptr[0], ptr[a]. ptr[42] is problematic since we don't support integer literals
     // TODO: Reading from uninitialized memory address should result in error
 

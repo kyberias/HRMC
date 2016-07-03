@@ -294,118 +294,52 @@ namespace HRMC
 
         public void VisitIfStatement(IfStatement stmt)
         {
-            //throw new System.NotImplementedException();
-            var label1 = GetNewLabel();
-            var label2 = GetNewLabel();
-            var label3 = GetNewLabel();
-
-            if (stmt.Condition.EvaluatedValue != null)
-            {
-                if ((bool)stmt.Condition.EvaluatedValue)
-                {
-                    // condition is always true, always run code
-                    stmt.Statement.Visit(this);
-                    return;
-                }
-                else
-                {
-                    // condition is always false, don't generate code
-                    return;
-                }
-            }
-
-            stmt.Condition.Visit(this);
-
-            if (stmt.Condition.Trueness == Trueness.Zero)
-            {
-                EmitInstruction(Opcode.JumpZ, label1);
-                EmitInstruction(Opcode.Jump, label2);
-                EmitInstruction(Opcode.Label, label1);
-
-                // Evaluate condition in code
-                stmt.Statement.Visit(this);
-                if (stmt.ElseStatement != null)
-                {
-                    EmitInstruction(Opcode.Jump, label3);
-                }
-
-                EmitInstruction(Opcode.Label, label2);
-                if (stmt.ElseStatement != null)
-                {
-                    stmt.ElseStatement.Visit(this);
-                    EmitInstruction(Opcode.Label, label3);
-                }
-            }
-            else if (stmt.Condition.Trueness == Trueness.NotZero)
-            {
-                EmitInstruction(Opcode.JumpZ, label2);
-
-                // Evaluate condition in code
-                stmt.Statement.Visit(this);
-                if (stmt.ElseStatement != null)
-                {
-                    EmitInstruction(Opcode.Jump, label3);
-                }
-
-                EmitInstruction(Opcode.Label, label2);
-                if (stmt.ElseStatement != null)
-                {
-                    stmt.ElseStatement.Visit(this);
-                    EmitInstruction(Opcode.Label, label3);
-                }
-            }
-            else if (stmt.Condition.Trueness == Trueness.LessThanZero)
-            {
-                EmitInstruction(Opcode.JumpN, label1);
-                EmitInstruction(Opcode.Jump, label2);
-                EmitInstruction(Opcode.Label, label1);
-                stmt.Statement.Visit(this);
-                if (stmt.ElseStatement != null)
-                {
-                    EmitInstruction(Opcode.Jump, label3);
-                }
-
-                EmitInstruction(Opcode.Label, label2);
-                if (stmt.ElseStatement != null)
-                {
-                    stmt.ElseStatement.Visit(this);
-                    EmitInstruction(Opcode.Label, label3);
-                }
-            }
-            else
-            {
-                throw new NotSupportedException("Trueness");
-            }
+            DoIfWhile(stmt.Condition, stmt.Statement, stmt.ElseStatement, false);
         }
 
-        public void VisitWhileStatement(WhileStatement stmt)
+        public void DoIfWhile(ExpressionBase condition, Statement statement, Statement elseStatement, bool isWhile)
         {
-            var label1 = GetNewLabel() + "while";
+            var label1 = GetNewLabel();
 
             // Handle constant value (true/false)
-            if (stmt.Condition.EvaluatedValue != null)
+            if (condition.EvaluatedValue != null)
             {
-                if ((bool)stmt.Condition.EvaluatedValue)
+                if ((bool)condition.EvaluatedValue)
                 {
-                    EmitInstruction(Opcode.Label, label1);
-                    stmt.Statement.Visit(this);
-                    EmitInstruction(Opcode.Jump, label1);
+                    if (isWhile)
+                    {
+                        EmitInstruction(Opcode.Label, label1);
+                    }
+                    statement.Visit(this);
+                    if (isWhile)
+                    {
+                        EmitInstruction(Opcode.Jump, label1);
+                    }
                     return;
                 }
                 else
                 {
                     // condition is always false, don't generate code
+
+                    if (elseStatement != null)
+                    {
+                        elseStatement.Visit(this);
+                    }
+
                     return;
                 }
             }
 
-            var start = GetNewLabel() + "while";
-            var exit = GetNewLabel() + "while";
-            EmitInstruction(Opcode.Label, start);
+            var start = GetNewLabel();
+            var exit = GetNewLabel();
+            if (isWhile)
+            {
+                EmitInstruction(Opcode.Label, start);
+            }
 
-            var cond = stmt.Condition as LogicalExpression;
+            var cond = condition as LogicalExpression;
 
-            var expressions = cond != null ? cond.Expressions : new List<ExpressionBase>() {stmt.Condition};
+            var expressions = cond != null ? cond.Expressions : new List<ExpressionBase>() { condition };
 
             // Supporting only AND now
 
@@ -437,56 +371,42 @@ namespace HRMC
                                 EmitInstruction(Opcode.Label, lb);
                             }
                             break;
+                        case Trueness.LessThanOrZero:
+                            {
+                                var lb = GetNewLabel();
+                                EmitInstruction(Opcode.JumpZ, lb);
+                                EmitInstruction(Opcode.JumpN, lb);
+                                EmitInstruction(Opcode.Jump, exit);
+                                EmitInstruction(Opcode.Label, lb);
+                            }
+                            break;
                         case Trueness.MoreThanOrZero:
                             EmitInstruction(Opcode.JumpN, exit);
                             break;
                         default:
-                           throw new NotSupportedException();
+                            throw new NotSupportedException();
                     }
                 }
             }
 
-            stmt.Statement.Visit(this);
+            statement.Visit(this);
 
-            EmitInstruction(Opcode.Jump, start);
+            if (isWhile)
+            {
+                EmitInstruction(Opcode.Jump, start);
+            }
+
+            var realExit = GetNewLabel();
+            EmitInstruction(Opcode.Jump, realExit);
+
             EmitInstruction(Opcode.Label, exit);
+            elseStatement?.Visit(this);
+            EmitInstruction(Opcode.Label, realExit);
+        }
 
-
-            /*            if (stmt.Condition.Trueness == Trueness.Zero)
-                        {
-                            stmt.Condition.Visit(this);
-                            EmitInstruction(Opcode.JumpZ, label2);
-                            EmitInstruction(Opcode.Jump, label3);
-                            EmitInstruction(Opcode.Label, label2);
-                            stmt.Statement.Visit(this);
-                            EmitInstruction(Opcode.Jump, label1);
-                            EmitInstruction(Opcode.Label, label3);
-                        }
-                        else if (stmt.Condition.Trueness == Trueness.LessThanZero)
-                        {
-                            stmt.Condition.Visit(this);
-                            EmitInstruction(Opcode.JumpN, label2);
-                            EmitInstruction(Opcode.Jump, label3);
-
-                            EmitInstruction(Opcode.Label, label2);
-                            stmt.Statement.Visit(this);
-                            EmitInstruction(Opcode.Jump, label1); // ^
-
-                            EmitInstruction(Opcode.Label, label3);
-                        }
-                        else if (stmt.Condition.Trueness == Trueness.NotZero)
-                        {
-                            stmt.Condition.Visit(this);
-                            EmitInstruction(Opcode.JumpZ, label3);
-                            EmitInstruction(Opcode.JumpN, label3);
-                            stmt.Statement.Visit(this);
-                            EmitInstruction(Opcode.Jump, label1);
-                            EmitInstruction(Opcode.Label, label3);
-                        }
-                        else
-                        {
-                            new NotSupportedException();
-                        }*/
+        public void VisitWhileStatement(WhileStatement stmt)
+        {
+            DoIfWhile(stmt.Condition, stmt.Statement, null, true);
         }
 
         public void VisitBlockStatement(BlockStatement stmt)
@@ -499,7 +419,6 @@ namespace HRMC
 
         public void VisitAssignment(Assignment stmt)
         {
-            //throw new System.NotImplementedException();
             stmt.Value.Visit(this);
             if (stmt.Indirect)
             {
@@ -524,37 +443,34 @@ namespace HRMC
                 var e = expr.Expressions[i];
                 e.Visit(this);
 
-                //if (i < expr.Expressions.Count - 1)
+                if (e.Trueness == Trueness.Zero)
                 {
-                    if (e.Trueness == Trueness.Zero)
+                    var lb = GetNewLabel();
+                    EmitInstruction(Opcode.JumpZ, lb);
+                    EmitInstruction(Opcode.Jump, exit);
+                    EmitInstruction(Opcode.Label, lb);
+                }
+                else if (e.Trueness == Trueness.NotZero)
+                {
+                    EmitInstruction(Opcode.JumpZ, exit);
+                    if (expr.Trueness == Trueness.Zero)
                     {
-                        var lb = GetNewLabel();
-                        EmitInstruction(Opcode.JumpZ, lb);
-                        EmitInstruction(Opcode.Jump, exit);
-                        EmitInstruction(Opcode.Label, lb);
+                        var temp = AllocVariable();
+                        EmitInstruction(Opcode.CopyTo, temp);
+                        EmitInstruction(Opcode.Sub, temp);
+                        FreeVariable(temp);
                     }
-                    else if (e.Trueness == Trueness.NotZero)
-                    {
-                        EmitInstruction(Opcode.JumpZ, exit);
-                        if (expr.Trueness == Trueness.Zero)
-                        {
-                            var temp = AllocVariable();
-                            EmitInstruction(Opcode.CopyTo, temp);
-                            EmitInstruction(Opcode.Sub, temp);
-                            FreeVariable(temp);
-                        }
-                    }
-                    else if (e.Trueness == Trueness.LessThanZero)
-                    {
-                        var lb = GetNewLabel();
-                        EmitInstruction(Opcode.JumpN, lb);
-                        EmitInstruction(Opcode.Jump, exit);
-                        EmitInstruction(Opcode.Label, lb);
-                    }
-                    else
-                    {
-                        throw new NotSupportedException();
-                    }
+                }
+                else if (e.Trueness == Trueness.LessThanZero)
+                {
+                    var lb = GetNewLabel();
+                    EmitInstruction(Opcode.JumpN, lb);
+                    EmitInstruction(Opcode.Jump, exit);
+                    EmitInstruction(Opcode.Label, lb);
+                }
+                else
+                {
+                    throw new NotSupportedException();
                 }
             }
             EmitInstruction(Opcode.Label, exit);
@@ -563,15 +479,10 @@ namespace HRMC
         public void VisitEqualityExpression(EqualityExpression expr)
         {
             // If either expression is variable, calculate the other one first
-            /*var notVar = expr.Expression2 is VariableExpression ? expr.Expression : expr.Expression2;
-            var varExpr = notVar == expr.Expression
-                ? expr.Expression2 as VariableExpression
-                : expr.Expression as VariableExpression;*/
 
             if (expr.Expression is VariableExpression && expr.Expression2 is VariableExpression
                 && !((VariableExpression)expr.Expression).Indirect && !((VariableExpression)expr.Expression2).Indirect)
             {
-                //Debug.Assert(notVar != varExpr);
                 expr.Expression.Visit(this);
                 EmitInstruction(Opcode.Sub, variables[((VariableExpression)expr.Expression2).Name].address.Value);
                 // Accumulator is zero when left == right
@@ -620,14 +531,6 @@ namespace HRMC
                     EmitInstruction(Opcode.Sub, temp);
                     FreeVariable(temp);
                 }
-
-
-                /*expr.Expression2.Visit(this);
-                var temp = AllocVariable();
-                EmitInstruction(Opcode.CopyTo, temp);
-                expr.Expression.Visit(this);
-                EmitInstruction(Opcode.Sub, temp);
-                FreeVariable();*/
             }
         }
 

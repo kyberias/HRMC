@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace HRMC
@@ -102,8 +101,6 @@ namespace HRMC
 
     public class MultiplyExpression : ExpressionBase
     {
-        //public List<ExpressionBase> Expressions { get; set; } = new List<ExpressionBase>();
-        //public List<Token> Operators { get; set; } = new List<Token>();
         public ExpressionBase Expression1 { get; set; }
         public ExpressionBase Expression2 { get; set; }
         public Token Operator { get; set; }

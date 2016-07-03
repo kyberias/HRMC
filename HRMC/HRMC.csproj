@@ -50,12 +50,11 @@
     <Compile Include="HrmcProgram.cs" />
     <Compile Include="Tokenizer.cs" />
     <Compile Include="IVisitor.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="AST.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="test.hrm" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

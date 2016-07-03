@@ -3,16 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Remoting;
 using NUnit.Framework;
 
 namespace HRMC.Test
 {
     [TestFixture]
-    public class Class1
+    [Timeout(3000)]
+    public class CompilerTests
     {
-        [TestCase("int a = input(); output(a);", new[] {1}, ExpectedResult = new[] {1}, Description = "Single variable")
-        ]
+        [TestCase("int a = input(); output(a);", new[] {1}, ExpectedResult = new[] {1}, Description = "Single variable")]
         [TestCase("int a = input(); int b = input(); output(a+b);", new[] {1, 2}, ExpectedResult = new[] {3},
             Description = "Addition")]
         [TestCase("output(input()+input());", new[] {1, 2}, ExpectedResult = new[] {3}, Description = "Addition")]
@@ -28,9 +27,6 @@ namespace HRMC.Test
 
         [TestCase("int a = input(); output(((a)+a)+a);", new[] {1}, ExpectedResult = new[] {3},
             Description = "Parenthesis")]
-
-//        [TestCase("int a[10]; int *b = a; while(true) { *a = input(); if(*a == 0) { break; } output(*a); a++; } output(a-b);", new[] { 1 }, ExpectedResult = new[] { 3 }, Description = "Arrays")]
-
         public int[] CompiledProgramShouldGenerateCorrectOutput(string program, int[] input)
         {
             return Evaluate(program, input);
@@ -154,21 +150,6 @@ namespace HRMC.Test
         {
             return Evaluate("int a=input(); int b=input(); if(a<b) { output(a); } ", input);
         }
-
-        /*[TestCase(new[] { 1 }, ExpectedResult = new int[] { 2, 0 })]
-        public int[] PointerArithmetic(int[] input)
-        {
-            var mem = new int[10];
-            mem[9] = 0;
-            return Evaluate("const int *Zptr = 9; int *a=*Zptr; *a = input(); (*a)++; (*a)++; output(*a); output(a);", input, mem);
-        }*/
-
-        /*[TestCase(new[] { 5, 4, 3, 2, 1, 5 }, ExpectedResult = new int[] { 4, 3, 2, 1 })]
-        [TestCase(new[] { 5, 5 }, ExpectedResult = new int[] {  })]
-        public int[] WhileConditions(int[] input)
-        {
-            return Evaluate("int a=input(); int b=a; while(b == b && (b = input()) < a && b < a) { output(b); } ", input);
-        }*/
 
         [TestCase(new[] { 2, 3, 5, 6, 0 }, "==", ExpectedResult = new int[] {  })]
         [TestCase(new[] { 2, 3, 5, 5, 0 }, "==", ExpectedResult = new int[] { 5 })]
@@ -329,6 +310,19 @@ while(*op != 0)
             mem[11] = 100;
             var src = ReadFileFromResource("digitexploder.c");
             return Evaluate(src, input, mem).ToArray();
+        }
+
+        [TestCase(new[] { 1, 2, 3 }, ExpectedResult = new int[] { 1, 2, 3 })]
+        [TestCase(new[] { 1, 3, 2 }, ExpectedResult = new int[] { 1, 2, 3 })]
+        [TestCase(new[] { 2, 1, 3 }, ExpectedResult = new int[] { 1, 2, 3 })]
+        [TestCase(new[] { 2, 3, 1 }, ExpectedResult = new int[] { 1, 2, 3 })]
+        [TestCase(new[] { 3, 1, 2 }, ExpectedResult = new int[] { 1, 2, 3 })]
+        [TestCase(new[] { 3, 2, 1 }, ExpectedResult = new int[] { 1, 2, 3 })]
+        [TestCase(new[] { 3, 2, 1, 1, 2, 3, 2, 3, 1, 3, 1, 2 }, ExpectedResult = new int[] { 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3 })]
+        public int[] TestThreeSort(int[] input)
+        {
+            var src = ReadFileFromResource("threesort.c");
+            return Evaluate(src, input).ToArray();
         }
 
         [TestCase(new[] { 10, 13, 18 }, ExpectedResult = new int[] { 2, 5, 13, 2, 3, 3 })]
